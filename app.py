@@ -69,7 +69,6 @@ def main():
             if st.button("Display Results"):
                 institution_name, country_code = options[selected]
                 
-                # Rest of your analysis code here, converted to use st.write instead of display
                 df_inst = df_master[(df_master["institution"] == institution_name) &
                                   (df_master["country"] == country_code)]
                 
@@ -77,20 +76,101 @@ def main():
                     st.error(f"No ranking data found for {institution_name} ({country_code}).")
                     return
 
-                # Your existing analysis code here, adapted for Streamlit
+                # Calculate rankings data
                 totals = df_master.groupby(["name of the ranking", "year"]).size().reset_index(name="total")
                 total_dict = {(row["name of the ranking"], row["year"]): row["total"]
-                             for _, row in totals.iterrows()}
+                            for _, row in totals.iterrows()}
+                avg_totals = {}
+                for ranking, group in totals.groupby("name of the ranking"):
+                    avg_totals[ranking] = round(group["total"].mean())
                 
-                # ... [Continue with your existing analysis code, replacing display() with st.write()]
-                # For matplotlib figures:
-                # st.pyplot(fig)
+                inst_dict = {(row["name of the ranking"], row["year"]): row["rank"]
+                            for _, row in df_inst.iterrows()}
                 
-                # For DataFrames:
-                # st.dataframe(df, use_container_width=True)
+                years = [2021, 2022, 2023, 2024]
+                ranking_names = sorted(df_master["name of the ranking"].unique(),
+                                    key=lambda x: (0 if x.lower() == "all subject areas" else 1, x))
                 
-                # For text:
-                # st.write("Your text here")
+                # Create the rankings table
+                table_data = []
+                summary_counts = {year: 0 for year in years}
+                
+                for ranking in ranking_names:
+                    if not any((ranking, year) in inst_dict for year in years):
+                        continue
+                    row_data = {"Ranking": ranking}
+                    for year in years:
+                        key = (ranking, year)
+                        if key not in total_dict:
+                            row_data[str(year)] = "—"
+                        else:
+                            total = total_dict[key]
+                            if key in inst_dict:
+                                cell_val = f"{inst_dict[key]} / {total}"
+                                summary_counts[year] += 1
+                            else:
+                                cell_val = f"— / {total}"
+                            row_data[str(year)] = cell_val
+                    table_data.append(row_data)
+                
+                if table_data:
+                    df_display = pd.DataFrame(table_data)
+                    st.dataframe(df_display, use_container_width=True)
+                    
+                    # Display summary
+                    total_appearances = sum(summary_counts.values())
+                    summary_text = f"{institution_name} ({country_code}) appears {total_appearances} times in total: "
+                    summary_parts = [f"{summary_counts[year]} in {year}" for year in years]
+                    st.write(summary_text + ", ".join(summary_parts) + ".")
+                    
+                    # Display enriched data
+                    df_filtered = df_enriched[(df_enriched["Institution"] == institution_name) & 
+                                           (df_enriched["Scimago_country_code"] == country_code)]
+                    
+                    if not df_filtered.empty:
+                        record = df_filtered.iloc[0]
+                        total_pubs = record.get("Total_Publications", "no match")
+                        fields_str = record.get("fields", "")
+                        subfields_str = record.get("Top_30_Subfields", "")
+                        sdg_str = record.get("SDG", "")
+                        
+                        st.write(f"\nTotal Publications (2015-2024): {total_pubs}")
+                        
+                        # Create visualizations
+                        if total_pubs != "no match":
+                            try:
+                                total_pubs_int = int(total_pubs)
+                                
+                                # Process fields data
+                                fields_data = parse_topics_string(fields_str)
+                                if fields_data:
+                                    fields_data = [(name.strip(), count, count/total_pubs_int*100) 
+                                                 for name, count in fields_data if (count/total_pubs_int*100) > 5]
+                                    fields_data = sorted(fields_data, key=lambda x: x[2], reverse=True)
+                                    
+                                    if fields_data:
+                                        st.subheader("Top Fields (>5%)")
+                                        fig, ax = plt.subplots(figsize=(10, 6))
+                                        names = [x[0] for x in fields_data]
+                                        percentages = [x[2] for x in fields_data]
+                                        bars = ax.barh(names, percentages, color='skyblue')
+                                        
+                                        # Add value labels
+                                        for bar, (_, count, _) in zip(bars, fields_data):
+                                            ax.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2, 
+                                                  f"{count}", va='center')
+                                        
+                                        plt.xlabel("Percentage (%)")
+                                        plt.title("Top Fields Distribution")
+                                        st.pyplot(fig)
+                                        plt.close()
+                                    
+                                # Add similar visualizations for subfields and SDGs...
+                                        
+                            except ValueError:
+                                st.error("Error processing publication data")
+                    else:
+                        st.warning("No enriched record found for the selected institution.")
 
 if __name__ == "__main__":
     main()
