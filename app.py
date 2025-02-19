@@ -7,7 +7,9 @@ import matplotlib.ticker as mticker
 import re
 import textwrap
 
+# ---------------------------
 # Set page config to use full width
+# ---------------------------
 st.set_page_config(
     page_title="Benchmarking tool",
     layout="wide"
@@ -100,7 +102,36 @@ def fix_width(cell, width=11):
     return s.ljust(width)
 
 # ---------------------------
-# Benchmarking Function
+# Heatmap Styling Function
+# ---------------------------
+def color_cells_dynamic(row):
+    styles = []
+    for col in row.index:
+        if col == "Ranking":
+            styles.append("")
+        else:
+            cell = row[col]
+            if pd.isna(cell) or str(cell).strip().lower() == "no data":
+                styles.append("background-color: white; color: black; font-size: 16px;")
+            else:
+                cell_str = str(cell).strip()
+                if cell_str.startswith("—"):
+                    ratio = 0.999
+                else:
+                    try:
+                        rank_str, total_str = cell_str.split("/")
+                        rank_val = float(rank_str.strip())
+                        total_val = float(total_str.strip())
+                        ratio = rank_val / total_val if total_val > 0 else 0.0
+                    except Exception:
+                        ratio = 0.0
+                ratio = max(0, min(1, ratio))
+                hex_color = get_heatmap_color(1 - ratio)
+                styles.append(f"background-color: {hex_color}; color: black;")
+    return styles
+
+# ---------------------------
+# Main Benchmarking Function
 # ---------------------------
 def run_benchmark(target_key, rank_range, min_appearances):
     # Filter 2024 rankings
@@ -151,7 +182,7 @@ def run_benchmark(target_key, rank_range, min_appearances):
     target_enriched = target_enriched_row.iloc[0]
     target_total_pubs = float(target_enriched['Total_Publications'])
     
-    # Helper functions for metrics
+    # Define helper functions for metrics locally.
     def parse_metrics(metric_str):
         result = {}
         if pd.isna(metric_str) or metric_str.strip() == "":
@@ -197,14 +228,14 @@ def run_benchmark(target_key, rank_range, min_appearances):
         fields_dict = parse_metrics(row.get('fields', ''))
         fields_perc = compute_percentage(fields_dict, total_pubs) if total_pubs > 0 else {}
         similar_fields = {f: fields_perc[f] for f in fields_perc 
-                            if f in target_fields_perc and fields_perc[f] > 5 and target_fields_perc[f] > 5}
+                          if f in target_fields_perc and fields_perc[f] > 5 and target_fields_perc[f] > 5}
         similar_fields_sorted = sorted(similar_fields.items(), key=lambda x: x[1], reverse=True)
         similar_fields_str = "; ".join([f"{k} ({v:.1f}%)" for k, v in similar_fields_sorted])
         
         subfields_dict = parse_metrics(row.get('Top_30_Subfields', ''))
         subfields_perc = compute_percentage(subfields_dict, total_pubs) if total_pubs > 0 else {}
         similar_subfields = {sf: subfields_perc[sf] for sf in subfields_perc 
-                                if sf in target_subfields_perc and subfields_perc[sf] > 3 and target_subfields_perc[sf] > 3}
+                             if sf in target_subfields_perc and subfields_perc[sf] > 3 and target_subfields_perc[sf] > 3}
         similar_subfields_sorted = sorted(similar_subfields.items(), key=lambda x: x[1], reverse=True)
         similar_subfields_str = "; ".join([f"{k} ({v:.1f}%)" for k, v in similar_subfields_sorted])
         
@@ -232,7 +263,7 @@ def run_benchmark(target_key, rank_range, min_appearances):
     
     similar_metrics = merged.apply(compute_similar, axis=1)
     final_df = pd.concat([merged, similar_metrics], axis=1)
-
+    
     final_df = final_df[[ 
         'ROR_name', 
         'Scimago_country_code', 
@@ -249,105 +280,61 @@ def run_benchmark(target_key, rank_range, min_appearances):
     
     final_df = final_df.rename(columns={
         'ROR_name': 'Institution name',
+        'Scimago_country_code': 'Country code',
         'Scimago_country_name': 'Country name',
-        'appearances': 'Similar rankings (count)',
+        'appearances': 'Appearances in rankings',
+        'ranking_detail': 'Ranking details',
         'Total_Publications': 'Total publications',
         'similar_fields': 'Similar top fields',
         'similar_subfields': 'Similar top subfields',
         'similar_topics_count': 'Similar top topics (count)',
         'similar_topics_details': 'Similar top topics',
-        'ranking_detail': 'Similar rankings (details)',
         'similar_sdgs': 'Similar top SDGs'
     })
     
     final_df['Total publications'] = final_df['Total publications'].fillna(0).round().astype(int)
     
-    final_df = final_df[
-        (final_df['Total publications'] >= min_pubs) &
-        (final_df['Total publications'] <= max_pubs)
-    ].reset_index(drop=True)
-    
-    eur_countries = [
-        'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BLR', 'BGR', 'CHE', 'CYP', 'CZE',
-        'DEU', 'DNK', 'ESP', 'EST', 'FIN', 'FRA','GBR', 'GEO', 'GRC', 'HRV', 'HUN', 'IRL',
-        'ISL', 'ITA', 'KAZ', 'KOS', 'LIE', 'LTU', 'LUX', 'LVA', 'MCO', 'MDA', 'MKD', 'MLT',
-        'MNE', 'NLD', 'NOR', 'POL', 'PRT', 'ROU', 'SMR', 'SRB', 'SVK', 'SVN', 'SWE',
-        'TUR', 'UKR', 'VAT'
-    ]
-    if europe_only:
-        final_df = final_df[final_df['Scimago_country_code'].isin(eur_countries)].reset_index(drop=True)
-    
-    # Remove sorting options and 'No.' column
-    final_df = final_df.reset_index(drop=True)
-    
-    display_df = final_df.applymap(lambda x: truncate_text(x, 100) if isinstance(x, str) else x)
-    return display_df
+    return final_df
 
 # ---------------------------
-# Heatmap Styling Function
-# ---------------------------
-def color_cells_dynamic(row):
-    styles = []
-    for col in row.index:
-        if col == "Ranking":
-            styles.append("")
-        else:
-            cell = row[col]
-            if pd.isna(cell) or str(cell).strip().lower() == "no data":
-                styles.append("background-color: white; color: black; font-size: 16px;")
-            else:
-                cell_str = str(cell).strip()
-                if cell_str.startswith("—"):
-                    ratio = 0.999
-                else:
-                    try:
-                        rank_str, total_str = cell_str.split("/")
-                        rank_val = float(rank_str.strip())
-                        total_val = float(total_str.strip())
-                        ratio = rank_val / total_val if total_val > 0 else 0.0
-                    except Exception:
-                        ratio = 0.0
-                ratio = max(0, min(1, ratio))
-                hex_color = get_heatmap_color(1 - ratio)
-                styles.append(f"background-color: {hex_color}; color: black;")
-    return styles
-
-# ---------------------------
-# First UI: Target Institution Results
+# UI: First Section – Display Institution Results
 # ---------------------------
 st.title("Bench:red[Up]")
 st.header("On your mark... bench!")
 
+# Column layout for search and button
 col1, col2 = st.columns([1, 3])
 with col1:
-    search_str = st.text_input("Enter partial institution name", placeholder="Enter partial institution name")
+    search_str = st.text_input("Enter partial institution name", placeholder="Enter partial institution name", key="search_str")
 with col2:
     find_button = st.button("Find Matches")
 
 if find_button:
-    search_str = search_str.strip().lower()
-    if not search_str:
+    search_term = search_str.strip().lower()
+    if not search_term:
         st.warning("Please enter a non-empty search string.")
     else:
         matches = [
             (f"{row['Institution']} ({row['Scimago_country_code']})",
              (row['Institution'], row['Scimago_country_code']))
             for _, row in df_enriched.iterrows()
-            if search_str in row['Institution'].lower()
+            if search_term in row['Institution'].lower()
         ]
         if not matches:
-            st.info(f"No institutions found containing '{search_str}'.")
+            st.info(f"No institutions found containing '{search_term}'.")
         else:
             st.session_state.matches = matches
             st.success(f"Found {len(matches)} match(es). Please select one below.")
 
-if "matches" in st.session_state and st.session_state.matches:
-    selected_label = st.selectbox("Select Institution", [m[0] for m in st.session_state.matches])
+if "matches" in st.session_state:
+    selected_label = st.selectbox("Select Institution", [m[0] for m in st.session_state.matches], key="matches_dropdown")
     selected_tuple = next((tup for label, tup in st.session_state.matches if label == selected_label), None)
     if st.button("Display Results"):
         if not selected_tuple:
             st.error("No institution selected.")
         else:
+            # Save selected institution in session state
+            st.session_state.current_institution = selected_tuple
             institution_name, country_code = selected_tuple
             df_inst = df_master[
                 (df_master["institution"] == institution_name) &
@@ -356,10 +343,7 @@ if "matches" in st.session_state and st.session_state.matches:
             if df_inst.empty:
                 st.error(f"No ranking data found for {institution_name} ({country_code}).")
             else:
-                # Store the selected institution in session state
-                st.session_state.current_institution = selected_tuple
-
-                # Process ranking data
+                # Process ranking data to build a heatmap table
                 totals = df_master.groupby(["name of the ranking", "year"]).size().reset_index(name="total")
                 total_dict = {(row["name of the ranking"], row["year"]): row["total"] for _, row in totals.iterrows()}
                 inst_dict = {(row["name of the ranking"], row["year"]): row["rank"] for _, row in df_inst.iterrows()}
@@ -392,7 +376,6 @@ if "matches" in st.session_state and st.session_state.matches:
                 for col in years:
                     result_df[col] = result_df[col].apply(lambda x: fix_width(x, 11))
                 
-                # Display results
                 st.markdown("<h3>Scimago results</h3>", unsafe_allow_html=True)
                 st.markdown("Thematic rankings with no data started in 2022.", unsafe_allow_html=True)
                 styled_df = result_df.style.apply(color_cells_dynamic, axis=1).hide(axis="index")
@@ -404,6 +387,8 @@ if "matches" in st.session_state and st.session_state.matches:
                     ", ".join(summary_parts) + ".",
                     unsafe_allow_html=True
                 )
+                
+                st.markdown("<h3>OpenAlex results</h3>", unsafe_allow_html=True)
                 try:
                     total_pubs_int = int(df_enriched[
                         (df_enriched["Institution"] == institution_name) &
@@ -412,8 +397,7 @@ if "matches" in st.session_state and st.session_state.matches:
                     total_pubs_str = f"{total_pubs_int:,}"
                 except Exception:
                     total_pubs_str = "no match"
-                st.markdown("<h3>OpenAlex results</h3>", unsafe_allow_html=True)
-                st.markdown(f"<b>Total publications (articles only) for the period 2015-2024: <span style='color:red'>{total_pubs_str}</span></b>", unsafe_allow_html=True)
+                st.markdown(f"<b>Total publications (articles only) for 2015-2024: <span style='color:red'>{total_pubs_str}</span></b>", unsafe_allow_html=True)
                 
                 # ---------------------------
                 # Additional Enrichment and Histograms
@@ -562,50 +546,59 @@ if "matches" in st.session_state and st.session_state.matches:
                         st.info("No topics data available.")
                 else:
                     st.error("No enriched record found for the selected institution.")
-                
-                # ---------------------------
-                # Second UI: Benchmarking Section
-                # ---------------------------
-                st.markdown("<h3>Benchmarking</h3>", unsafe_allow_html=True)
-                rank_range = st.number_input("Rank Range", value=100, min_value=1, max_value=1000, step=1)
-                min_appearances = st.number_input("Min. Appearances", value=3, min_value=1, max_value=100, step=1)
-                min_pubs = st.number_input("Min. pubs", value=100, min_value=0, max_value=999999999, step=1)
-                max_pubs = st.number_input("Max. pubs", value=10000, min_value=0, max_value=999999999, step=1)
-                europe_only = st.checkbox("Europe only", value=True)
 
-                if st.button("Run Benchmark"):
-                    benchmark_df = run_benchmark(st.session_state.current_institution, rank_range, min_appearances)
-                    if benchmark_df is not None:
-                        # Remove unnecessary columns
-                        if 'Scimago_country code' in benchmark_df.columns:
-                            benchmark_df = benchmark_df.drop(columns=['Scimago_country code'])
-                        # Rename columns as required
-                        benchmark_df = benchmark_df.rename(columns={
-                            'ROR_name': 'Institution name',
-                            'Scimago_country_name': 'Country name',
-                            'appearances': 'Similar rankings (count)',
-                            'Total_Publications': 'Total publications',
-                            'similar_fields': 'Similar top fields',
-                            'similar_subfields': 'Similar top subfields',
-                            'similar_topics_count': 'Similar top topics (count)',
-                            'similar_topics_details': 'Similar top topics',
-                            'ranking_detail': 'Similar rankings (details)',
-                            'similar_sdgs': 'Similar top SDGs'
-                        })
-                        # Reorder columns in the desired order
-                        final_order = [
-                            'Institution name',
-                            'Country name',
-                            'Similar rankings (count)',
-                            'Total publications',
-                            'Similar top topics (count)',
-                            'Similar top topics',
-                            'Similar top subfields',
-                            'Similar top fields',
-                            'Similar top SDGs',
-                            'Similar rankings (details)'
-                        ]
-                        benchmark_df = benchmark_df[final_order]
-                        # Start index at 1
-                        benchmark_df.index = benchmark_df.index + 1
-                        st.dataframe(benchmark_df, use_container_width=True)
+# ---------------------------
+# UI: Second Section – Benchmarking Parameters
+# ---------------------------
+st.markdown("<h3>Benchmarking Parameters</h3>", unsafe_allow_html=True)
+st.number_input("Rank Range", value=100, min_value=1, max_value=1000, step=1, key="rank_range")
+st.number_input("Min. Appearances", value=3, min_value=1, max_value=100, step=1, key="min_appearances")
+st.number_input("Min. pubs", value=100, min_value=0, max_value=999999999, step=1, key="min_pubs")
+st.number_input("Max. pubs", value=10000, min_value=0, max_value=999999999, step=1, key="max_pubs")
+st.checkbox("Europe only", value=True, key="europe_only")
+
+# ---------------------------
+# Callback for Running Benchmark
+# ---------------------------
+def run_benchmark_callback():
+    if "current_institution" not in st.session_state:
+        st.error("Please display institution results first.")
+        return
+    target_key = st.session_state.current_institution
+    rank_range = st.session_state.rank_range
+    min_appearances = st.session_state.min_appearances
+    # Run the main benchmarking function
+    bench_df = run_benchmark(target_key, rank_range, min_appearances)
+    if bench_df is not None:
+        # Further filtering based on publication range
+        bench_df = bench_df[
+            (bench_df['Total publications'] >= st.session_state.min_pubs) &
+            (bench_df['Total publications'] <= st.session_state.max_pubs)
+        ].reset_index(drop=True)
+        # Filter by Europe if requested (using the renamed "Country code" column)
+        if st.session_state.europe_only:
+            eur_countries = [
+                'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BLR', 'BGR', 'CHE',
+                'CYP', 'CZE', 'DEU', 'DNK', 'ESP', 'EST', 'FIN', 'FRA','GBR', 'GEO',
+                'GRC', 'HRV', 'HUN', 'IRL', 'ISL', 'ITA', 'KAZ', 'KOS', 'LIE', 'LTU',
+                'LUX', 'LVA', 'MCO', 'MDA', 'MKD', 'MLT', 'MNE', 'NLD', 'NOR', 'POL',
+                'PRT', 'ROU', 'SMR', 'SRB', 'SVK', 'SVN', 'SWE', 'TUR', 'UKR', 'VAT'
+            ]
+            bench_df = bench_df[bench_df['Country code'].isin(eur_countries)].reset_index(drop=True)
+        # Reset index so it starts at 1 (without inserting a "No." column)
+        bench_df = bench_df.reset_index(drop=True)
+        bench_df.index = range(1, len(bench_df)+1)
+        bench_df = bench_df.drop(columns=['Country code'])
+        st.session_state.benchmark_df = bench_df
+    else:
+        st.session_state.benchmark_df = None
+
+# Create a Run Benchmark button that triggers the callback.
+st.button("Run Benchmark", on_click=run_benchmark_callback)
+
+# ---------------------------
+# Display Benchmark Results if available
+# ---------------------------
+if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not None:
+    st.markdown("<h3>Benchmarking Results</h3>", unsafe_allow_html=True)
+    st.dataframe(st.session_state.benchmark_df, use_container_width=True)
