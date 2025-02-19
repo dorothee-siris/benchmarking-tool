@@ -9,7 +9,7 @@ import textwrap
 
 # Set page config to use full width
 st.set_page_config(
-    page_title="Institution Analysis Dashboard",
+    page_title="Benchmarking tool",
     layout="wide"
 )
 
@@ -110,7 +110,7 @@ def color_cells_dynamic(row):
         else:
             cell = row[col]
             if pd.isna(cell) or str(cell).strip().lower() == "no data":
-                styles.append("background-color: white; color: black; font-size: 10px;")
+                styles.append("background-color: white; color: black; font-size: 16px;")
             else:
                 cell_str = str(cell).strip()
                 if cell_str.startswith("—"):
@@ -229,23 +229,67 @@ if "matches" in st.session_state and st.session_state.matches:
                 st.markdown(f"<b>Total publications (articles only) for the period 2015-2024: <span style='color:red'>{total_pubs_str}</span></b>", unsafe_allow_html=True)
                 
                 # ---------------------------
-                # Histograms and Topics Table
+                # Additional Enrichment and Histograms
                 # ---------------------------
-                # Formatter for x-axis ticks (integer percentages)
-                formatter = mticker.FuncFormatter(lambda x, pos: f"{int(round(x))} %")
-                
-                # Top Fields Histogram
-                if True:
-                    st.subheader("Top Fields (>5%)")
-                    fig_fields, ax_fields = plt.subplots(figsize=(10, 5))
-                    fig_fields.set_dpi(100)
-                    # (Assume fields_data computed in benchmark function; here we use a placeholder)
-                    # For demonstration, we re-use a similar logic from benchmarking:
-                    # You might want to precompute fields_data similar to your benchmark function.
-                    # For now, if not available, skip histogram.
-                    # (Replace this with your actual fields_data computation.)
-                    fields_data = []  # If empty, show info.
+                df_filtered = df_enriched[
+                    (df_enriched["Institution"] == institution_name) &
+                    (df_enriched["Scimago_country_code"] == country_code)
+                ]
+                if not df_filtered.empty:
+                    record = df_filtered.iloc[0]
+                    fields_str = record.get("fields", "")
+                    subfields_str = record.get("Top_30_Subfields", "")
+                    sdg_str = record.get("SDG", "")
+                    topics_str = record.get("Top_50_Topics", "")
+                    
+                    try:
+                        total_pubs_int = int(record.get("Total_Publications", "0"))
+                    except Exception:
+                        total_pubs_int = None
+                    
+                    if fields_str and total_pubs_int:
+                        fields_data = [(name.strip(), count, count/total_pubs_int*100) 
+                                    for name, count in parse_topics_string(fields_str)
+                                    if (count/total_pubs_int*100) > 5]
+                        fields_data = sorted(fields_data, key=lambda x: x[2], reverse=True)
+                    else:
+                        fields_data = []
+                    if subfields_str and total_pubs_int:
+                        subfields_data = [(name.strip(), count, count/total_pubs_int*100) 
+                                        for name, count in parse_topics_string(subfields_str)
+                                        if (count/total_pubs_int*100) > 3]
+                        subfields_data = sorted(subfields_data, key=lambda x: x[2], reverse=True)
+                    else:
+                        subfields_data = []
+                    if sdg_str and total_pubs_int:
+                        sdg_data = [(name.strip(), count, count/total_pubs_int*100)
+                                    for name, count in parse_topics_string(sdg_str)
+                                    if (count/total_pubs_int*100) > 1]
+                        sdg_data = sorted(sdg_data, key=lambda x: x[2], reverse=True)
+                    else:
+                        sdg_data = []
+                    sdg_data_labeled = []
+                    for name, count, perc in sdg_data:
+                        norm_key = normalize_sdg_key(name)
+                        if norm_key in sdg_numbers_norm:
+                            number = sdg_numbers_norm[norm_key]
+                        elif norm_key in sdg_variants_norm:
+                            number = sdg_variants_norm[norm_key]
+                        else:
+                            number = "?"
+                        new_label = f"{name} (SDG {number})"
+                        sdg_data_labeled.append((new_label, count, perc))
+                    
+                    # Formatter for x-axis ticks to show integer percentages.
+                    formatter = mticker.FuncFormatter(lambda x, pos: f"{int(round(x))} %")
+                    
+                    # ---------------------------
+                    # Histogram: Top Fields
+                    # ---------------------------
                     if fields_data:
+                        st.subheader("Top Fields (>5%)")
+                        fig_fields, ax_fields = plt.subplots(figsize=(10, 5))
+                        fig_fields.set_dpi(100)
                         names_fields = [x[0] for x in fields_data]
                         percentages_fields = [x[2] for x in fields_data]
                         bars = ax_fields.barh(names_fields, percentages_fields, color='#16a4d8')
@@ -254,22 +298,22 @@ if "matches" in st.session_state and st.session_state.matches:
                         ax_fields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, fields_data):
                             ax_fields.annotate(f"{count:,}",
-                                               xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
-                                               xytext=(3, 0), textcoords="offset points",
-                                               va='center', fontsize=10)
+                                            xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                                            xytext=(3, 0), textcoords="offset points",
+                                            va='center', fontsize=10)
                         ax_fields.margins(x=0.05)
                         plt.tight_layout()
                         st.pyplot(fig_fields, use_container_width=False)
                     else:
                         st.info("No fields data >5%.")
-                
-                # Top Subfields Histogram
-                if True:
-                    st.subheader("Top Subfields (>3%)")
-                    fig_subfields, ax_subfields = plt.subplots(figsize=(10, 6))
-                    fig_subfields.set_dpi(100)
-                    subfields_data = []  # Replace with actual computation.
+                    
+                    # ---------------------------
+                    # Histogram: Top Subfields
+                    # ---------------------------
                     if subfields_data:
+                        st.subheader("Top Subfields (>3%)")
+                        fig_subfields, ax_subfields = plt.subplots(figsize=(10, 6))
+                        fig_subfields.set_dpi(100)
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
                         bars = ax_subfields.barh(names_subfields, percentages_subfields, color='#60dbe8')
@@ -278,21 +322,21 @@ if "matches" in st.session_state and st.session_state.matches:
                         ax_subfields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, subfields_data):
                             ax_subfields.annotate(f"{count:,}",
-                                                  xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
-                                                  xytext=(3, 0), textcoords="offset points",
-                                                  va='center', fontsize=10)
+                                                xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                                                xytext=(3, 0), textcoords="offset points",
+                                                va='center', fontsize=10)
                         plt.tight_layout()
                         st.pyplot(fig_subfields, use_container_width=False)
                     else:
                         st.info("No subfields data >3%.")
-                
-                # Top SDGs Histogram
-                if True:
-                    st.subheader("Top SDGs (>1%)")
-                    fig_sdgs, ax_sdgs = plt.subplots(figsize=(10, 5))
-                    fig_sdgs.set_dpi(100)
-                    sdg_data_labeled = []  # Replace with actual computation.
+                    
+                    # ---------------------------
+                    # Histogram: Top SDGs
+                    # ---------------------------
                     if sdg_data_labeled:
+                        st.subheader("Top SDGs (>1%)")
+                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(10, 5))
+                        fig_sdgs.set_dpi(100)
                         names_sdgs = [x[0] for x in sdg_data_labeled]
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
                         bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#9b5fe0')
@@ -301,32 +345,36 @@ if "matches" in st.session_state and st.session_state.matches:
                         ax_sdgs.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, sdg_data_labeled):
                             ax_sdgs.annotate(f"{count:,}",
-                                             xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
-                                             xytext=(3, 0), textcoords="offset points",
-                                             va='center', fontsize=10)
+                                            xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                                            xytext=(3, 0), textcoords="offset points",
+                                            va='center', fontsize=10)
                         plt.tight_layout()
                         st.pyplot(fig_sdgs, use_container_width=False)
                     else:
                         st.info("No SDGs data >1%.")
-                
-                # Topics Table (Top 50 Topics)
-                topics_data = parse_topics_string("")  # Replace with actual topics_str from enriched data.
-                if topics_data and total_pubs_int:
-                    topics_data = [(name.strip(), count, round(count/total_pubs_int*100, 2))
-                                   for name, count in topics_data]
-                    topics_df = pd.DataFrame(topics_data, columns=["Topic", "Count", "Ratio"])
-                    topics_df = topics_df.sort_values(by="Count", ascending=False).reset_index(drop=True)
-                    topics_df = topics_df.head(50)
-                    topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
-                    custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
-                        "custom_yellow", ["#FFFFFF", "#d9bc2b", "#695806"]
-                    )
-                    styled_topics_df = topics_df.style.format({"Ratio": "{:.2f} %"}).background_gradient(
-                        subset=["Ratio"], cmap=custom_cmap, vmin=0, vmax=6
-                    ).hide(axis="index")
-                    st.markdown(styled_topics_df.to_html(), unsafe_allow_html=True)
+                    
+                    # ---------------------------
+                    # Topics Data: Classic Top 50 Table
+                    # ---------------------------
+                    topics_data = parse_topics_string(topics_str)
+                    if topics_data and total_pubs_int:
+                        topics_data = [(name.strip(), count, round(count/total_pubs_int*100, 2))
+                                    for name, count in topics_data]
+                        topics_df = pd.DataFrame(topics_data, columns=["Topic", "Count", "Ratio"])
+                        topics_df = topics_df.sort_values(by="Count", ascending=False).reset_index(drop=True)
+                        topics_df = topics_df.head(50)
+                        topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
+                        custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
+                            "custom_yellow", ["#FFFFFF", "#d9bc2b", "#695806"]
+                        )
+                        styled_topics_df = topics_df.style.format({"Ratio": "{:.2f} %"}).background_gradient(
+                            subset=["Ratio"], cmap=custom_cmap, vmin=0, vmax=6
+                        ).hide(axis="index")
+                        st.markdown(styled_topics_df.to_html(), unsafe_allow_html=True)
+                    else:
+                        st.info("No topics data available.")
                 else:
-                    st.info("No topics data available.")
+                    st.error("No enriched record found for the selected institution.")
                 
                 # ---------------------------
                 # Second UI: Benchmarking Section
@@ -337,8 +385,44 @@ if "matches" in st.session_state and st.session_state.matches:
                 min_pubs = st.number_input("Min. pubs", value=100, min_value=0, max_value=999999999, step=1)
                 max_pubs = st.number_input("Max. pubs", value=10000, min_value=0, max_value=999999999, step=1)
                 europe_only = st.checkbox("Europe only", value=True)
-                sort_col = st.selectbox("Sort by", options=["Appearances in rankings", "Total publications", "Similar top topics (count)"])
-                sort_order = st.selectbox("Order", options=["Descending", "Ascending"])
+
+                if st.button("Run Benchmark"):
+                    benchmark_df = run_benchmark(selected_tuple, rank_range, min_appearances)
+                    if benchmark_df is not None:
+                        # Remove unnecessary columns
+                        if 'Country code' in benchmark_df.columns:
+                            benchmark_df = benchmark_df.drop(columns=['Country code'])
+                        # Rename columns as required
+                        benchmark_df = benchmark_df.rename(columns={
+                            'ROR_name': 'Institution name',
+                            'Scimago_country_name': 'Country name',
+                            'appearances': 'Similar rankings (count)',
+                            'Total_Publications': 'Total publications',
+                            'similar_fields': 'Similar top fields',
+                            'similar_subfields': 'Similar top subfields',
+                            'similar_topics_count': 'Similar top topics (count)',
+                            'similar_topics_details': 'Similar top topics',
+                            'ranking_detail': 'Similar rankings (details)',
+                            'similar_sdgs': 'Similar top SDGs'
+                        })
+                        # Reorder columns in the desired order
+                        final_order = [
+                            'Institution name',
+                            'Country name',
+                            'Similar rankings (count)',
+                            'Total publications',
+                            'Similar top topics (count)',
+                            'Similar top topics',
+                            'Similar top subfields',
+                            'Similar top fields',
+                            'Similar top SDGs',
+                            'Similar rankings (details)'
+                        ]
+                        benchmark_df = benchmark_df[final_order]
+                        # Start index at 1
+                        benchmark_df.index = benchmark_df.index + 1
+                        st.dataframe(benchmark_df, use_container_width=True)
+
                 
                 # ---------------------------
                 # Benchmarking Function
@@ -473,7 +557,7 @@ if "matches" in st.session_state and st.session_state.matches:
                     
                     similar_metrics = merged.apply(compute_similar, axis=1)
                     final_df = pd.concat([merged, similar_metrics], axis=1)
-                    
+    
                     final_df = final_df[[ 
                         'ROR_name', 
                         'Scimago_country_code', 
@@ -490,15 +574,14 @@ if "matches" in st.session_state and st.session_state.matches:
                     
                     final_df = final_df.rename(columns={
                         'ROR_name': 'Institution name',
-                        'Scimago_country_code': 'Country code',
                         'Scimago_country_name': 'Country name',
-                        'appearances': 'Appearances in rankings',
-                        'ranking_detail': 'Ranking details',
+                        'appearances': 'Similar rankings (count)',
                         'Total_Publications': 'Total publications',
                         'similar_fields': 'Similar top fields',
                         'similar_subfields': 'Similar top subfields',
                         'similar_topics_count': 'Similar top topics (count)',
                         'similar_topics_details': 'Similar top topics',
+                        'ranking_detail': 'Similar rankings (details)',
                         'similar_sdgs': 'Similar top SDGs'
                     })
                     
@@ -519,13 +602,8 @@ if "matches" in st.session_state and st.session_state.matches:
                     if europe_only:
                         final_df = final_df[final_df['Country code'].isin(eur_countries)].reset_index(drop=True)
                     
-                    ascending = (sort_order == "Ascending")
-                    final_df = final_df.sort_values(by=sort_col, ascending=ascending).reset_index(drop=True)
-                    final_df.insert(0, 'No.', final_df.index + 1)
+                    # Remove sorting options and 'No.' column
+                    final_df = final_df.reset_index(drop=True)
                     
                     display_df = final_df.applymap(lambda x: truncate_text(x, 100) if isinstance(x, str) else x)
                     return display_df
-                
-                benchmark_df = run_benchmark(selected_tuple, rank_range, min_appearances)
-                if benchmark_df is not None:
-                    st.dataframe(benchmark_df, use_container_width=True)
