@@ -577,8 +577,8 @@ if "matches" in st.session_state and st.session_state.matches:
                     benchmark_df = run_benchmark(st.session_state.current_institution, rank_range, min_appearances)
                     if benchmark_df is not None:
                         # Remove unnecessary columns
-                        if 'Country code' in benchmark_df.columns:
-                            benchmark_df = benchmark_df.drop(columns=['Country code'])
+                        if 'Scimago_country code' in benchmark_df.columns:
+                            benchmark_df = benchmark_df.drop(columns=['Scimago_country code'])
                         # Rename columns as required
                         benchmark_df = benchmark_df.rename(columns={
                             'ROR_name': 'Institution name',
