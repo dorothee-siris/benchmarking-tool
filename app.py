@@ -64,9 +64,9 @@ def get_heatmap_color(ratio):
       - 1: #06d6a0 (green)
     """
     # Normalize RGB values to 0-1.
-    c0 = (239/255, 71/255, 111/255)    # ratio 0: red
-    c_mid = (255/255, 209/255, 102/255)  # ratio 0.5: yellow
-    c1 = (6/255, 214/255, 160/255)       # ratio 1: green
+    c0 = (239/255, 71/255, 111/255)    # red
+    c_mid = (255/255, 209/255, 102/255)  # yellow
+    c1 = (6/255, 214/255, 160/255)       # green
 
     if ratio <= 0.5:
         w = ratio / 0.5
@@ -80,6 +80,12 @@ def get_heatmap_color(ratio):
         b = (1 - w)*c_mid[2] + w*c1[2]
     return matplotlib.colors.rgb2hex((r, g, b))
 
+def fix_width(cell, width=13):
+    s = str(cell)
+    if len(s) > width:
+        return s[:width]
+    return s.ljust(width)
+
 # ---------------------------
 # New Styling Function for Heatmap (Ranking Table)
 # ---------------------------
@@ -90,8 +96,8 @@ def color_cells_dynamic(row):
             styles.append("")
         else:
             cell = row[col]
-            if pd.isna(cell):
-                # Force white background with black text for NaN.
+            if pd.isna(cell) or cell == "no data":
+                # Replace missing data with "no data" and force white background, black font.
                 styles.append("background-color: white; color: black;")
             else:
                 cell_str = str(cell).strip()
@@ -109,8 +115,8 @@ def color_cells_dynamic(row):
                 ratio = max(0, min(1, ratio))
                 # Reverse the ratio for the desired color order.
                 hex_color = get_heatmap_color(1 - ratio)
-                # Use white font.
-                styles.append(f"background-color: {hex_color}; color: white;")
+                # Force black font.
+                styles.append(f"background-color: {hex_color}; color: black;")
     return styles
 
 # ---------------------------
@@ -147,12 +153,10 @@ if st.button("Find Matches"):
             st.success(f"Found {len(matches)} match(es). Please select one below.")
             st.session_state.matches = matches
 
-# If matches are found, show a dropdown (selectbox)
 if st.session_state.matches:
     match_labels = [m[0] for m in st.session_state.matches]
     selected_label = st.selectbox("Select Institution", match_labels)
     
-    # Get the corresponding (Institution, Country_Code) tuple
     selected_tuple = next((tup for label, tup in st.session_state.matches if label == selected_label), None)
     
     if st.button("Display Results"):
@@ -160,7 +164,6 @@ if st.session_state.matches:
             st.error("No institution selected.")
         else:
             institution_name, country_code = selected_tuple
-            # Filter the master dataset
             df_inst = df_master[
                 (df_master["institution"] == institution_name) &
                 (df_master["country"] == country_code)
@@ -174,9 +177,6 @@ if st.session_state.matches:
                 totals = df_master.groupby(["name of the ranking", "year"]).size().reset_index(name="total")
                 total_dict = {(row["name of the ranking"], row["year"]): row["total"]
                               for _, row in totals.iterrows()}
-                avg_totals = {}
-                for ranking, group in totals.groupby("name of the ranking"):
-                    avg_totals[ranking] = round(group["total"].mean())
                 inst_dict = {(row["name of the ranking"], row["year"]): row["rank"]
                            for _, row in df_inst.iterrows()}
                 years = [2021, 2022, 2023, 2024]
@@ -204,40 +204,37 @@ if st.session_state.matches:
                 result_df = pd.DataFrame.from_dict(output_data, orient="index", columns=years)
                 result_df.index.name = "Ranking"
                 result_df = result_df.reset_index()
-
+                
+                # Replace NaN with "no data"
+                result_df = result_df.fillna("no data")
+                
+                # Force fixed width on year columns (13 characters) and shorten Ranking names (15 characters)
+                result_df["Ranking"] = result_df["Ranking"].apply(lambda x: str(x)[:15])
+                for col in years:
+                    result_df[col] = result_df[col].apply(lambda x: fix_width(x, 13))
+                
                 # ---------------------------
                 # Display Scimago Results Header and Heatmap
                 # ---------------------------
                 st.markdown("<h3>Scimago results</h3>", unsafe_allow_html=True)
+                st.markdown("Thematic rankings with no data started in 2022", unsafe_allow_html=True)
                 styled_df = result_df.style.apply(color_cells_dynamic, axis=1).hide(axis="index")
                 st.markdown(styled_df.to_html(), unsafe_allow_html=True)
-                
-                total_appearances = sum(summary_counts.values())
-                summary_parts = [f"{summary_counts[year]} in {year}" for year in years]
-                st.markdown(
-                    "<br>" +
-                    "Rankings with 'nan' values started in 2022.<br>" +
-                    f"{institution_name} ({country_code}) appears {total_appearances} times in total: " +
-                    ", ".join(summary_parts) + ".",
-                    unsafe_allow_html=True
-                )
                 
                 # ---------------------------
                 # Display OpenAlex Results Header and Total Publications
                 # ---------------------------
                 st.markdown("<h3>OpenAlex results</h3>", unsafe_allow_html=True)
                 try:
-                    total_pubs_int = int(record_total := df_enriched[
+                    total_pubs_int = int(df_enriched[
                         (df_enriched["Institution"] == institution_name) &
                         (df_enriched["Scimago_country_code"] == country_code)
                     ].iloc[0].get("Total_Publications", "no match"))
                     total_pubs_str = f"{total_pubs_int:,}"
                 except Exception:
                     total_pubs_str = "no match"
-                st.markdown(
-                    f"<br><b>Total publications (articles only) for the period 2015-2024: {total_pubs_str}</b></br><br></br>",
-                    unsafe_allow_html=True
-                )
+                st.markdown(f"<b>Total publications (articles only) for the period 2015-2024: {total_pubs_str}</b>",
+                            unsafe_allow_html=True)
                 
                 # ---------------------------
                 # Additional Enrichment and Histograms
@@ -252,13 +249,12 @@ if st.session_state.matches:
                     subfields_str = record.get("Top_30_Subfields", "")
                     sdg_str = record.get("SDG", "")
                     topics_str = record.get("Top_50_Topics", "")
-
-                    # Process fields, subfields, and SDGs data
+                    
                     try:
                         total_pubs_int = int(record.get("Total_Publications", "0"))
                     except Exception:
                         total_pubs_int = None
-
+                    
                     if fields_str and total_pubs_int:
                         fields_data = [(name.strip(), count, count/total_pubs_int*100) 
                                        for name, count in parse_topics_string(fields_str)
@@ -287,7 +283,7 @@ if st.session_state.matches:
                         new_label = f"{name} (SDG {number})"
                         sdg_data_labeled.append((new_label, count, perc))
                     
-                    # Define a formatter for x-axis ticks to show integer percentages.
+                    # Formatter for x-axis ticks to show integer percentages.
                     formatter = mticker.FuncFormatter(lambda x, pos: f"{int(round(x))} %")
                     
                     # ---------------------------
@@ -297,7 +293,7 @@ if st.session_state.matches:
                         fig_fields, ax_fields = plt.subplots(figsize=(8, 8))
                         names_fields = [x[0] for x in fields_data]
                         percentages_fields = [x[2] for x in fields_data]
-                        bars = ax_fields.barh(names_fields, percentages_fields, color='skyblue')
+                        bars = ax_fields.barh(names_fields, percentages_fields, color='#16a4d8')
                         ax_fields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
                         ax_fields.xaxis.set_major_formatter(formatter)
                         ax_fields.set_title("Top Fields (>5%)", fontsize=14, weight="semibold")
@@ -326,7 +322,7 @@ if st.session_state.matches:
                         fig_subfields, ax_subfields = plt.subplots(figsize=(8, 8))
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
-                        bars = ax_subfields.barh(names_subfields, percentages_subfields, color='lightpink')
+                        bars = ax_subfields.barh(names_subfields, percentages_subfields, color='#60dbe8')
                         ax_subfields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
                         ax_subfields.xaxis.set_major_formatter(formatter)
                         ax_subfields.set_title("Top Subfields (>3%)", fontsize=14, weight="semibold")
@@ -356,7 +352,7 @@ if st.session_state.matches:
                         fig_sdgs, ax_sdgs = plt.subplots(figsize=(8, 8))
                         names_sdgs = [x[0] for x in sdg_data_labeled]
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
-                        bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#E6CCFF')
+                        bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#9b5fe0')
                         ax_sdgs.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
                         ax_sdgs.xaxis.set_major_formatter(formatter)
                         ax_sdgs.set_title("Top SDGs (>1%)", fontsize=14, weight="semibold")
@@ -389,8 +385,6 @@ if st.session_state.matches:
                         topics_df = topics_df.sort_values(by="Count", ascending=False).reset_index(drop=True)
                         topics_df = topics_df.head(50)
                         topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
-                        # Custom colormap with three reference colors:
-                        # 0%: #FFFFFF, 3%: #d9bc2b, 6%: #695806.
                         custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
                             "custom_yellow", ["#FFFFFF", "#d9bc2b", "#695806"]
                         )
