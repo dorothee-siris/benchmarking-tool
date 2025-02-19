@@ -7,6 +7,12 @@ import matplotlib.ticker as mticker
 import re
 import textwrap
 
+# Set page config to use full width
+st.set_page_config(
+    page_title="Institution Analysis Dashboard",
+    layout="wide"
+)
+
 # ---------------------------
 # Caching Data Loading
 # ---------------------------
@@ -96,8 +102,8 @@ def color_cells_dynamic(row):
             styles.append("")  # Leave Ranking column unmodified.
         else:
             cell = row[col]
-            # Check for NaN or "no data" (case-insensitive)
             if pd.isna(cell) or str(cell).strip().lower() == "no data":
+                # Force white background, black text, and smaller font for missing data.
                 styles.append("background-color: white; color: black; font-size: 10px;")
             else:
                 cell_str = str(cell).strip()
@@ -112,6 +118,7 @@ def color_cells_dynamic(row):
                     except Exception:
                         ratio = 0.0
                 ratio = max(0, min(1, ratio))
+                # Reverse ratio for desired order
                 hex_color = get_heatmap_color(1 - ratio)
                 styles.append(f"background-color: {hex_color}; color: black;")
     return styles
@@ -123,14 +130,18 @@ if "matches" not in st.session_state:
     st.session_state.matches = []  # List of (label, (Institution, Country_Code)) tuples
 
 # ---------------------------
-# Streamlit Layout
+# Main Layout: Search and Results in Columns
 # ---------------------------
 st.title("Bench:red[Up]")
 st.header("On your mark... bench!")
 
-search_str = st.text_input("Enter partial institution name", placeholder="Enter partial institution name")
+col1, col2 = st.columns([1, 3])
+with col1:
+    search_str = st.text_input("Enter partial institution name", placeholder="Enter partial institution name")
+with col2:
+    find_button = st.button("Find Matches")
 
-if st.button("Find Matches"):
+if find_button:
     search_str = search_str.strip().lower()
     if not search_str:
         st.warning("Please enter a non-empty search string.")
@@ -150,9 +161,7 @@ if st.button("Find Matches"):
             st.session_state.matches = matches
 
 if st.session_state.matches:
-    match_labels = [m[0] for m in st.session_state.matches]
-    selected_label = st.selectbox("Select Institution", match_labels)
-    
+    selected_label = st.selectbox("Select Institution", [m[0] for m in st.session_state.matches])
     selected_tuple = next((tup for label, tup in st.session_state.matches if label == selected_label), None)
     
     if st.button("Display Results"):
@@ -174,7 +183,7 @@ if st.session_state.matches:
                 total_dict = {(row["name of the ranking"], row["year"]): row["total"]
                               for _, row in totals.iterrows()}
                 inst_dict = {(row["name of the ranking"], row["year"]): row["rank"]
-                           for _, row in df_inst.iterrows()}
+                             for _, row in df_inst.iterrows()}
                 years = [2021, 2022, 2023, 2024]
                 ranking_names = sorted(df_master["name of the ranking"].unique(),
                                        key=lambda x: (0 if x.lower() == "all subject areas" else 1, x))
@@ -204,7 +213,7 @@ if st.session_state.matches:
                 # Replace NaN with "no data"
                 result_df = result_df.fillna("no data")
                 
-                # Force fixed width on the result columns only (11 characters)
+                # Force fixed width only on the result columns (11 characters)
                 for col in years:
                     result_df[col] = result_df[col].apply(lambda x: fix_width(x, 11))
                 
@@ -236,7 +245,8 @@ if st.session_state.matches:
                     total_pubs_str = f"{total_pubs_int:,}"
                 except Exception:
                     total_pubs_str = "no match"
-                st.markdown(f"<b>Total publications (articles only) for the period 2015-2024: <span style='color:red'>{total_pubs_str}</span></b>", unsafe_allow_html=True)
+                st.markdown(f"<b>Total publications (articles only) for the period 2015-2024: <span style='color:red'>{total_pubs_str}</span></b>",
+                            unsafe_allow_html=True)
                 
                 # ---------------------------
                 # Additional Enrichment and Histograms
@@ -292,7 +302,8 @@ if st.session_state.matches:
                     # Histogram: Top Fields
                     # ---------------------------
                     if fields_data:
-                        fig_fields, ax_fields = plt.subplots(figsize=(8, 8))
+                        st.subheader("Top Fields (>5%)")
+                        fig_fields, ax_fields = plt.subplots(figsize=(15, 8))
                         names_fields = [x[0] for x in fields_data]
                         percentages_fields = [x[2] for x in fields_data]
                         bars = ax_fields.barh(names_fields, percentages_fields, color='skyblue')
@@ -305,15 +316,9 @@ if st.session_state.matches:
                                                xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                xytext=(3, 0), textcoords="offset points",
                                                va='center', fontsize=10)
-                        ax_fields.set_yticks(range(len(names_fields)))
-                        ax_fields.set_yticklabels(
-                            ["\n".join(textwrap.wrap(label, width=30)) for label in names_fields],
-                            fontsize=10
-                        )
-                        ax_fields.tick_params(axis='both', labelsize=10)
                         ax_fields.margins(x=0.15)
-                        st.pyplot(fig_fields)
-                        plt.close(fig_fields)
+                        plt.tight_layout()
+                        st.pyplot(fig_fields, use_container_width=True)
                     else:
                         st.info("No fields data >5%.")
                     
@@ -321,7 +326,8 @@ if st.session_state.matches:
                     # Histogram: Top Subfields
                     # ---------------------------
                     if subfields_data:
-                        fig_subfields, ax_subfields = plt.subplots(figsize=(8, 8))
+                        st.subheader("Top Subfields (>3%)")
+                        fig_subfields, ax_subfields = plt.subplots(figsize=(15, 8))
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
                         bars = ax_subfields.barh(names_subfields, percentages_subfields, color='lightpink')
@@ -334,16 +340,9 @@ if st.session_state.matches:
                                                   xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                   xytext=(3, 0), textcoords="offset points",
                                                   va='center', fontsize=10)
-                        ax_subfields.set_yticks(range(len(names_subfields)))
-                        ax_subfields.set_yticklabels(
-                            ["\n".join(textwrap.wrap(label, width=33)) for label in names_subfields],
-                            fontsize=9
-                        )
-                        ax_subfields.tick_params(axis='y', labelsize=9)
-                        ax_subfields.tick_params(axis='x', labelsize=10)
                         ax_subfields.margins(x=0.15)
-                        st.pyplot(fig_subfields)
-                        plt.close(fig_subfields)
+                        plt.tight_layout()
+                        st.pyplot(fig_subfields, use_container_width=True)
                     else:
                         st.info("No subfields data >3%.")
                     
@@ -351,7 +350,8 @@ if st.session_state.matches:
                     # Histogram: Top SDGs
                     # ---------------------------
                     if sdg_data_labeled:
-                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(8, 8))
+                        st.subheader("Top SDGs (>1%)")
+                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(15, 8))
                         names_sdgs = [x[0] for x in sdg_data_labeled]
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
                         bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#E6CCFF')
@@ -364,15 +364,9 @@ if st.session_state.matches:
                                              xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                              xytext=(3, 0), textcoords="offset points",
                                              va='center', fontsize=10)
-                        ax_sdgs.set_yticks(range(len(names_sdgs)))
-                        ax_sdgs.set_yticklabels(
-                            ["\n".join(textwrap.wrap(label, width=30)) for label in names_sdgs],
-                            fontsize=10
-                        )
-                        ax_sdgs.tick_params(axis='both', labelsize=10)
                         ax_sdgs.margins(x=0.15)
-                        st.pyplot(fig_sdgs)
-                        plt.close(fig_sdgs)
+                        plt.tight_layout()
+                        st.pyplot(fig_sdgs, use_container_width=True)
                     else:
                         st.info("No SDGs data >1%.")
                     
