@@ -56,31 +56,47 @@ def truncate_text(x, max_chars=100):
         return x[:max_chars] + "..."
     return x
 
+def get_heatmap_color(ratio):
+    """
+    Given a ratio between 0 and 1, interpolate between:
+      - 0: #ef476f (RGB: 239,71,111)
+      - 0.5: #ffd166 (RGB: 255,209,102)
+      - 1: #06d6a0 (RGB: 6,214,160)
+    """
+    # Normalize RGB values to 0-1.
+    c0 = (239/255, 71/255, 111/255)    # ratio 0
+    c_mid = (255/255, 209/255, 102/255)  # ratio 0.5
+    c1 = (6/255, 214/255, 160/255)       # ratio 1
+
+    if ratio <= 0.5:
+        w = ratio / 0.5
+        r = (1 - w)*c0[0] + w*c_mid[0]
+        g = (1 - w)*c0[1] + w*c_mid[1]
+        b = (1 - w)*c0[2] + w*c_mid[2]
+    else:
+        w = (ratio - 0.5) / 0.5
+        r = (1 - w)*c_mid[0] + w*c1[0]
+        g = (1 - w)*c_mid[1] + w*c1[1]
+        b = (1 - w)*c_mid[2] + w*c1[2]
+    return matplotlib.colors.rgb2hex((r, g, b))
+
 # ---------------------------
 # New Styling Function for Heatmap (Ranking Table)
 # ---------------------------
 def color_cells_dynamic(row):
     styles = []
-    # Try to get the reversed PiYG colormap.
-    try:
-        cmap = matplotlib.cm.get_cmap("PiYG_r")
-        reverse = False
-    except ValueError:
-        # Fallback: use PiYG and reverse the ratio.
-        cmap = matplotlib.cm.get_cmap("PiYG")
-        reverse = True
     for col in row.index:
         if col == "Ranking":
             styles.append("")
         else:
             cell = row[col]
             if pd.isna(cell):
-                # Force white background with black text for NaN.
+                # Force white background with black font for NaN.
                 styles.append("background-color: white; color: black;")
             else:
                 cell_str = str(cell).strip()
                 if cell_str.startswith("—"):
-                    # Force cells with "-" to use a high ratio (nearly worst).
+                    # Force cells starting with "-" to have ratio 0.999.
                     ratio = 0.999
                 else:
                     try:
@@ -91,12 +107,9 @@ def color_cells_dynamic(row):
                     except Exception:
                         ratio = 0.0
                 ratio = max(0, min(1, ratio))
-                # If using the fallback, reverse the ratio.
-                if reverse:
-                    hex_color = matplotlib.colors.rgb2hex(cmap(1 - ratio))
-                else:
-                    hex_color = matplotlib.colors.rgb2hex(cmap(ratio))
-                styles.append(f"background-color: {hex_color}")
+                hex_color = get_heatmap_color(ratio)
+                # Always use black font for readability.
+                styles.append(f"background-color: {hex_color}; color: black;")
     return styles
 
 # ---------------------------
@@ -262,6 +275,9 @@ if st.session_state.matches:
                         new_label = f"{name} (SDG {number})"
                         sdg_data_labeled.append((new_label, count, perc))
                     
+                    # Define a formatter for x-axis ticks to show integer percentages.
+                    formatter = mticker.FuncFormatter(lambda x, pos: f"{int(round(x))} %")
+                    
                     # ---------------------------
                     # Histogram: Top Fields
                     # ---------------------------
@@ -271,7 +287,7 @@ if st.session_state.matches:
                         percentages_fields = [x[2] for x in fields_data]
                         bars = ax_fields.barh(names_fields, percentages_fields, color='skyblue')
                         ax_fields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
-                        ax_fields.xaxis.set_major_formatter(mticker.PercentFormatter())
+                        ax_fields.xaxis.set_major_formatter(formatter)
                         ax_fields.set_title("Top Fields (>5%)", fontsize=14, weight="semibold")
                         ax_fields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, fields_data):
@@ -300,7 +316,7 @@ if st.session_state.matches:
                         percentages_subfields = [x[2] for x in subfields_data]
                         bars = ax_subfields.barh(names_subfields, percentages_subfields, color='lightpink')
                         ax_subfields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
-                        ax_subfields.xaxis.set_major_formatter(mticker.PercentFormatter())
+                        ax_subfields.xaxis.set_major_formatter(formatter)
                         ax_subfields.set_title("Top Subfields (>3%)", fontsize=14, weight="semibold")
                         ax_subfields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, subfields_data):
@@ -310,7 +326,7 @@ if st.session_state.matches:
                                                   va='center', fontsize=12)
                         ax_subfields.set_yticks(range(len(names_subfields)))
                         ax_subfields.set_yticklabels(
-                            ["\n".join(textwrap.wrap(label, width=35)) for label in names_subfields],
+                            ["\n".join(textwrap.wrap(label, width=33)) for label in names_subfields],
                             fontsize=9
                         )
                         ax_subfields.tick_params(axis='y', labelsize=9)
@@ -330,7 +346,7 @@ if st.session_state.matches:
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
                         bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#E6CCFF')
                         ax_sdgs.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
-                        ax_sdgs.xaxis.set_major_formatter(mticker.PercentFormatter())
+                        ax_sdgs.xaxis.set_major_formatter(formatter)
                         ax_sdgs.set_title("Top SDGs (>1%)", fontsize=14, weight="semibold")
                         ax_sdgs.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, sdg_data_labeled):
@@ -361,8 +377,8 @@ if st.session_state.matches:
                         topics_df = topics_df.sort_values(by="Count", ascending=False).reset_index(drop=True)
                         topics_df = topics_df.head(50)
                         topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
-                        # Create a custom colormap with three reference points:
-                        # 0%: #FFFFFF, 3%: #d9bc2b, 6%: #695806 (values above 6% are clamped)
+                        # Custom colormap with three reference colors:
+                        # 0%: #FFFFFF, 3%: #d9bc2b, 6%: #695806.
                         custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
                             "custom_yellow", ["#FFFFFF", "#d9bc2b", "#695806"]
                         )
