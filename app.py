@@ -63,7 +63,6 @@ def get_heatmap_color(ratio):
       - 0.5: #ffd166 (yellow)
       - 1: #06d6a0 (green)
     """
-    # Normalize RGB values to 0-1.
     c0 = (239/255, 71/255, 111/255)    # red
     c_mid = (255/255, 209/255, 102/255)  # yellow
     c1 = (6/255, 214/255, 160/255)       # green
@@ -80,7 +79,8 @@ def get_heatmap_color(ratio):
         b = (1 - w)*c_mid[2] + w*c1[2]
     return matplotlib.colors.rgb2hex((r, g, b))
 
-def fix_width(cell, width=13):
+def fix_width(cell, width=11):
+    """Return a string forced to a fixed width (left-justified)."""
     s = str(cell)
     if len(s) > width:
         return s[:width]
@@ -96,13 +96,12 @@ def color_cells_dynamic(row):
             styles.append("")  # Leave Ranking column unmodified.
         else:
             cell = row[col]
-            if pd.isna(cell) or cell == "no data":
-                # Replace missing data with "no data" and force white background, black font, and smaller font.
+            # Check for NaN or "no data" (case-insensitive)
+            if pd.isna(cell) or str(cell).strip().lower() == "no data":
                 styles.append("background-color: white; color: black; font-size: 10px;")
             else:
                 cell_str = str(cell).strip()
                 if cell_str.startswith("—"):
-                    # Force cells starting with "-" to have ratio 0.999.
                     ratio = 0.999
                 else:
                     try:
@@ -113,9 +112,7 @@ def color_cells_dynamic(row):
                     except Exception:
                         ratio = 0.0
                 ratio = max(0, min(1, ratio))
-                # Reverse the ratio for the desired color order.
                 hex_color = get_heatmap_color(1 - ratio)
-                # Force black font.
                 styles.append(f"background-color: {hex_color}; color: black;")
     return styles
 
@@ -131,7 +128,6 @@ if "matches" not in st.session_state:
 st.title("Bench:red[Up]")
 st.header("On your mark... bench!")
 
-# Search Box
 search_str = st.text_input("Enter partial institution name", placeholder="Enter partial institution name")
 
 if st.button("Find Matches"):
@@ -208,9 +204,9 @@ if st.session_state.matches:
                 # Replace NaN with "no data"
                 result_df = result_df.fillna("no data")
                 
-                # Trim only the result columns (2021 to 2024) to a fixed width of 13 characters.
+                # Force fixed width on the result columns only (11 characters)
                 for col in years:
-                    result_df[col] = result_df[col].apply(lambda x: fix_width(x, 13))
+                    result_df[col] = result_df[col].apply(lambda x: fix_width(x, 11))
                 
                 # ---------------------------
                 # Display Scimago Results Header and Heatmap
@@ -240,8 +236,7 @@ if st.session_state.matches:
                     total_pubs_str = f"{total_pubs_int:,}"
                 except Exception:
                     total_pubs_str = "no match"
-                st.markdown(f"<b>Total publications (articles only) for the period 2015-2024: {total_pubs_str}</b>",
-                            unsafe_allow_html=True)
+                st.markdown(f"<b>Total publications (articles only) for the period 2015-2024: <span style='color:red'>{total_pubs_str}</span></b>", unsafe_allow_html=True)
                 
                 # ---------------------------
                 # Additional Enrichment and Histograms
