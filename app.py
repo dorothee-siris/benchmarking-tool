@@ -6,10 +6,9 @@ import matplotlib
 import matplotlib.ticker as mticker
 import re
 import textwrap
+from fpdf import FPDF 
 from io import BytesIO
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+
 
 # ---------------------------
 # Set page config to use full width
@@ -129,26 +128,32 @@ def color_cells_dynamic(row):
                 styles.append(f"background-color: {hex_color}; color: black;")
     return styles
 
-def generate_pdf(dataframe):
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    # Create a list with the header row followed by the data rows
-    data = [dataframe.columns.tolist()] + dataframe.values.tolist()
-    table = Table(data)
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
-    elements = [table]
-    doc.build(elements)
-    pdf = buffer.getvalue()
-    buffer.close()
-    return pdf
+def generate_pdf_from_dataframe(df):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=10)
+    
+    # Calculate column widths based on page width and number of columns.
+    page_width = pdf.w - 2 * pdf.l_margin
+    col_width = page_width / len(df.columns)
+    
+    # Header row
+    for col in df.columns:
+        pdf.cell(col_width, 10, str(col), border=1, ln=0, align='C')
+    pdf.ln(10)
+    
+    # Data rows
+    for index, row in df.iterrows():
+        for item in row:
+            # Truncate text if too long (optional)
+            text = str(item)
+            if len(text) > 30:
+                text = text[:27] + "..."
+            pdf.cell(col_width, 10, text, border=1, ln=0, align='C')
+        pdf.ln(10)
+    
+    # Return the PDF as bytes
+    return pdf.output(dest="S").encode("latin-1")
 
 # ---------------------------
 # Main Benchmarking Function
@@ -634,10 +639,9 @@ if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not N
     st.dataframe(st.session_state.benchmark_df, use_container_width=True)
 
 
-# Generate PDF from the benchmark DataFrame
-pdf_bytes = generate_pdf(st.session_state.benchmark_df)
-# Create a default filename using the target institution name (the default download folder is set by the browser)
+# Generate PDF bytes from the benchmark DataFrame using our helper function
+pdf_bytes = generate_pdf_from_dataframe(st.session_state.benchmark_df)
+# Construct the default file name using the target institution name from session state
 default_filename = f"benchmark_{st.session_state.current_institution[0]}.pdf"
-# Add a download button for the PDF
+# Create a download button for the PDF file
 st.download_button("Generate PDF", data=pdf_bytes, file_name=default_filename, mime="application/pdf")
-
