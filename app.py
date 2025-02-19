@@ -74,7 +74,7 @@ def color_cells_dynamic(row):
                 cell_str = str(cell).strip()
                 if cell_str.startswith("—"):
                     # Treat cells with "-" as ratio 0.
-                    ratio = 0.0
+                    ratio = 0.999
                 else:
                     try:
                         rank_str, total_str = cell_str.split("/")
