@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.ticker as mticker
 import re
 import textwrap
 
@@ -60,20 +61,26 @@ def truncate_text(x, max_chars=100):
 # ---------------------------
 def color_cells_dynamic(row):
     styles = []
-    # Force the use of the reversed viridis colormap.
-    cmap = matplotlib.cm.get_cmap("viridis_r")
+    # Try to get the reversed PiYG colormap.
+    try:
+        cmap = matplotlib.cm.get_cmap("PiYG_r")
+        reverse = False
+    except ValueError:
+        # Fallback: use PiYG and reverse the ratio.
+        cmap = matplotlib.cm.get_cmap("PiYG")
+        reverse = True
     for col in row.index:
         if col == "Ranking":
             styles.append("")
         else:
             cell = row[col]
             if pd.isna(cell):
-                # Force white background and black font for NaN values.
+                # Force white background with black text for NaN.
                 styles.append("background-color: white; color: black;")
             else:
                 cell_str = str(cell).strip()
                 if cell_str.startswith("—"):
-                    # Treat cells with "-" as ratio 0.
+                    # Force cells with "-" to use a high ratio (nearly worst).
                     ratio = 0.999
                 else:
                     try:
@@ -84,7 +91,11 @@ def color_cells_dynamic(row):
                     except Exception:
                         ratio = 0.0
                 ratio = max(0, min(1, ratio))
-                hex_color = matplotlib.colors.rgb2hex(cmap(ratio))
+                # If using the fallback, reverse the ratio.
+                if reverse:
+                    hex_color = matplotlib.colors.rgb2hex(cmap(1 - ratio))
+                else:
+                    hex_color = matplotlib.colors.rgb2hex(cmap(ratio))
                 styles.append(f"background-color: {hex_color}")
     return styles
 
@@ -238,7 +249,7 @@ if st.session_state.matches:
                         subfields_data = []
                     sdg_data = parse_topics_string(sdg_str)
                     if sdg_data and total_pubs_int:
-                        # Change threshold to 1%
+                        # Use threshold of 1%
                         sdg_data = [(name.strip(), count, count/total_pubs_int*100)
                                     for name, count in sdg_data if (count/total_pubs_int*100) > 1]
                         sdg_data = sorted(sdg_data, key=lambda x: x[2], reverse=True)
@@ -259,12 +270,12 @@ if st.session_state.matches:
                         names_fields = [x[0] for x in fields_data]
                         percentages_fields = [x[2] for x in fields_data]
                         bars = ax_fields.barh(names_fields, percentages_fields, color='skyblue')
-                        ax_fields.set_xlabel("Percentage (%)", fontsize=14)
+                        ax_fields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
+                        ax_fields.xaxis.set_major_formatter(mticker.PercentFormatter())
                         ax_fields.set_title("Top Fields (>5%)", fontsize=14, weight="semibold")
                         ax_fields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, fields_data):
-                            # Annotate with an offset of 3 points to the right.
-                            ax_fields.annotate(f"{count}",
+                            ax_fields.annotate(f"{count:,}",
                                                xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                xytext=(3, 0), textcoords="offset points",
                                                va='center', fontsize=12)
@@ -274,7 +285,7 @@ if st.session_state.matches:
                             fontsize=10
                         )
                         ax_fields.tick_params(axis='both', labelsize=10)
-                        ax_fields.margins(x=0.1)
+                        ax_fields.margins(x=0.15)
                         st.pyplot(fig_fields)
                         plt.close(fig_fields)
                     else:
@@ -288,22 +299,23 @@ if st.session_state.matches:
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
                         bars = ax_subfields.barh(names_subfields, percentages_subfields, color='lightpink')
-                        ax_subfields.set_xlabel("Percentage (%)", fontsize=14)
+                        ax_subfields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
+                        ax_subfields.xaxis.set_major_formatter(mticker.PercentFormatter())
                         ax_subfields.set_title("Top Subfields (>3%)", fontsize=14, weight="semibold")
                         ax_subfields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, subfields_data):
-                            ax_subfields.annotate(f"{count}",
+                            ax_subfields.annotate(f"{count:,}",
                                                   xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                   xytext=(3, 0), textcoords="offset points",
                                                   va='center', fontsize=12)
                         ax_subfields.set_yticks(range(len(names_subfields)))
                         ax_subfields.set_yticklabels(
-                            ["\n".join(textwrap.wrap(label, width=30)) for label in names_subfields],
-                            fontsize=9  # Force label size 9 for y-axis on subfields
+                            ["\n".join(textwrap.wrap(label, width=35)) for label in names_subfields],
+                            fontsize=9
                         )
                         ax_subfields.tick_params(axis='y', labelsize=9)
                         ax_subfields.tick_params(axis='x', labelsize=10)
-                        ax_subfields.margins(x=0.1)
+                        ax_subfields.margins(x=0.15)
                         st.pyplot(fig_subfields)
                         plt.close(fig_subfields)
                     else:
@@ -317,11 +329,12 @@ if st.session_state.matches:
                         names_sdgs = [x[0] for x in sdg_data_labeled]
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
                         bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#E6CCFF')
-                        ax_sdgs.set_xlabel("Percentage (%)", fontsize=14)
+                        ax_sdgs.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
+                        ax_sdgs.xaxis.set_major_formatter(mticker.PercentFormatter())
                         ax_sdgs.set_title("Top SDGs (>1%)", fontsize=14, weight="semibold")
                         ax_sdgs.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, sdg_data_labeled):
-                            ax_sdgs.annotate(f"{count}",
+                            ax_sdgs.annotate(f"{count:,}",
                                              xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                              xytext=(3, 0), textcoords="offset points",
                                              va='center', fontsize=12)
@@ -331,7 +344,7 @@ if st.session_state.matches:
                             fontsize=10
                         )
                         ax_sdgs.tick_params(axis='both', labelsize=10)
-                        ax_sdgs.margins(x=0.1)
+                        ax_sdgs.margins(x=0.15)
                         st.pyplot(fig_sdgs)
                         plt.close(fig_sdgs)
                     else:
@@ -348,7 +361,8 @@ if st.session_state.matches:
                         topics_df = topics_df.sort_values(by="Count", ascending=False).reset_index(drop=True)
                         topics_df = topics_df.head(50)
                         topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
-                        # Custom colormap with three reference points (0%: #FFFFFF, 3%: #d9bc2b, 6%: #695806)
+                        # Create a custom colormap with three reference points:
+                        # 0%: #FFFFFF, 3%: #d9bc2b, 6%: #695806 (values above 6% are clamped)
                         custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
                             "custom_yellow", ["#FFFFFF", "#d9bc2b", "#695806"]
                         )
