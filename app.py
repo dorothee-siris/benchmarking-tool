@@ -6,7 +6,10 @@ import matplotlib
 import matplotlib.ticker as mticker
 import re
 import textwrap
-from fpdf import FPDF 
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 from io import BytesIO
 
 
@@ -128,32 +131,118 @@ def color_cells_dynamic(row):
                 styles.append(f"background-color: {hex_color}; color: black;")
     return styles
 
-def generate_pdf_from_dataframe(df):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=10)
+# Generate pdf function
+
+def generate_report_pdf():
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
     
-    # Calculate column widths based on page width and number of columns.
-    page_width = pdf.w - 2 * pdf.l_margin
-    col_width = page_width / len(df.columns)
+    # --- Title and Institution Info ---
+    if "current_institution" in st.session_state:
+        inst_name = st.session_state.current_institution[0]
+        inst_country = st.session_state.current_institution[1]
+        # Use only 2024 appearances and publication count stored in session_state:
+        appearances = st.session_state.get("target_appearances", "N/A")
+        pubs = st.session_state.get("target_total_publications", "N/A")
+    else:
+        inst_name, inst_country, appearances, pubs = "N/A", "N/A", "N/A", "N/A"
+        
+    title = Paragraph(f"<b>Benchmark Report for {inst_name}</b>", styles["Title"])
+    story.append(title)
+    story.append(Spacer(1, 12))
     
-    # Header row
-    for col in df.columns:
-        pdf.cell(col_width, 10, str(col), border=1, ln=0, align='C')
-    pdf.ln(10)
+    info = Paragraph(
+        f"Institution: {inst_name} ({inst_country})<br/>"
+        f"Scimago 2024 appearances: <font color='red'>{appearances}</font><br/>"
+        f"Total publications (articles only, 2015-2024): <font color='red'>{pubs}</font>",
+        styles["Normal"]
+    )
+    story.append(info)
+    story.append(Spacer(1, 12))
     
-    # Data rows
-    for index, row in df.iterrows():
-        for item in row:
-            # Truncate text if too long (optional)
-            text = str(item)
-            if len(text) > 30:
-                text = text[:27] + "..."
-            pdf.cell(col_width, 10, text, border=1, ln=0, align='C')
-        pdf.ln(10)
+    # --- Scimago Rankings Table (if available) ---
+    if "result_df" in st.session_state:
+        result_df = st.session_state.result_df
+        data = [result_df.columns.tolist()] + result_df.values.tolist()
+        t = Table(data, repeatRows=1)
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ]))
+        story.append(Paragraph("<b>Scimago Rankings</b>", styles["Heading2"]))
+        story.append(t)
+        story.append(Spacer(1, 12))
+    else:
+        story.append(Paragraph("Scimago Rankings data not available.", styles["Normal"]))
+        story.append(Spacer(1, 12))
     
-    # Return the PDF as bytes
-    return pdf.output(dest="S").encode("latin-1")
+    # --- OpenAlex Publication Counts ---
+    story.append(Paragraph("<b>OpenAlex Publication Counts</b>", styles["Heading2"]))
+    story.append(Paragraph(
+        f"Total publications (articles only, 2015-2024): <font color='red'>{pubs}</font>",
+        styles["Normal"]
+    ))
+    story.append(Spacer(1, 12))
+    
+    # --- Visualizations ---
+    # (Assuming you stored the image bytes in session_state with keys "fields_img", "subfields_img", "sdgs_img")
+    for key, label in [("fields_img", "Top Fields"), ("subfields_img", "Top Subfields"), ("sdgs_img", "Top SDGs")]:
+        if key in st.session_state:
+            img_data = st.session_state[key]  # assume bytes
+            img_buffer = BytesIO(img_data)
+            im = Image(img_buffer, width=400, height=300)  # adjust size as needed
+            story.append(Paragraph(f"<b>{label}</b>", styles["Heading2"]))
+            story.append(im)
+            story.append(Spacer(1, 12))
+    
+    # --- Topics Table ---
+    if "topics_df" in st.session_state:
+        topics_df = st.session_state.topics_df
+        data = [topics_df.columns.tolist()] + topics_df.values.tolist()
+        t2 = Table(data, repeatRows=1)
+        t2.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ]))
+        story.append(Paragraph("<b>Topics Table</b>", styles["Heading2"]))
+        story.append(t2)
+        story.append(Spacer(1, 12))
+    
+    # --- Benchmark Results Table ---
+    if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not None:
+        bench_df = st.session_state.benchmark_df
+        data = [bench_df.columns.tolist()] + bench_df.values.tolist()
+        t3 = Table(data, repeatRows=1)
+        t3.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ]))
+        story.append(Paragraph("<b>Benchmark Results</b>", styles["Heading2"]))
+        story.append(t3)
+        story.append(Spacer(1, 12))
+    else:
+        story.append(Paragraph("Benchmark Results not available.", styles["Normal"]))
+    
+    # Build PDF document
+    doc.build(story)
+    pdf = buffer.getvalue()
+    buffer.close()
+    return pdf
+
 
 # ---------------------------
 # Main Benchmarking Function
@@ -639,9 +728,6 @@ if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not N
     st.dataframe(st.session_state.benchmark_df, use_container_width=True)
 
 
-# Generate PDF bytes from the benchmark DataFrame using our helper function
-pdf_bytes = generate_pdf_from_dataframe(st.session_state.benchmark_df)
-# Construct the default file name using the target institution name from session state
+pdf_bytes = generate_report_pdf()
 default_filename = f"benchmark_{st.session_state.current_institution[0]}.pdf"
-# Create a download button for the PDF file
-st.download_button("Generate PDF", data=pdf_bytes, file_name=default_filename, mime="application/pdf")
+st.download_button("Generate PDF Report", data=pdf_bytes, file_name=default_filename, mime="application/pdf")
