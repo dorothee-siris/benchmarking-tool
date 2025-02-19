@@ -6,6 +6,10 @@ import matplotlib
 import matplotlib.ticker as mticker
 import re
 import textwrap
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 
 # ---------------------------
 # Set page config to use full width
@@ -124,6 +128,27 @@ def color_cells_dynamic(row):
                 hex_color = get_heatmap_color(1 - ratio)
                 styles.append(f"background-color: {hex_color}; color: black;")
     return styles
+
+def generate_pdf(dataframe):
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    # Create a list with the header row followed by the data rows
+    data = [dataframe.columns.tolist()] + dataframe.values.tolist()
+    table = Table(data)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+    elements = [table]
+    doc.build(elements)
+    pdf = buffer.getvalue()
+    buffer.close()
+    return pdf
 
 # ---------------------------
 # Main Benchmarking Function
@@ -608,39 +633,11 @@ if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not N
     st.markdown("<h3>Benchmarking Results</h3>", unsafe_allow_html=True)
     st.dataframe(st.session_state.benchmark_df, use_container_width=True)
 
-# --- PDF Generation Option ---
-import pdfkit  # Ensure pdfkit is installed and wkhtmltopdf is available
 
-# Convert the benchmark DataFrame to an HTML string
-html_str = st.session_state.benchmark_df.to_html(index=False)
-
-# Define custom CSS to style the final dataframe
-css = """
-<style>
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-table, th, td {
-    border: 1px solid #ddd;
-}
-th, td {
-    padding: 8px;
-    text-align: left;
-}
-th {
-    background-color: #f2f2f2;
-}
-</style>
-"""
-# Combine the CSS with the HTML
-html_full = css + html_str
-
-# Generate PDF bytes from the combined HTML (wkhtmltopdf must be installed)
-pdf_bytes = pdfkit.from_string(html_full, False)
-
-# Construct the default file name using the target institution name from session state
+# Generate PDF from the benchmark DataFrame
+pdf_bytes = generate_pdf(st.session_state.benchmark_df)
+# Create a default filename using the target institution name (the default download folder is set by the browser)
 default_filename = f"benchmark_{st.session_state.current_institution[0]}.pdf"
-
-# Create a download button for the PDF
+# Add a download button for the PDF
 st.download_button("Generate PDF", data=pdf_bytes, file_name=default_filename, mime="application/pdf")
+
