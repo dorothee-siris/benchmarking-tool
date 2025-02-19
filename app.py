@@ -59,14 +59,14 @@ def truncate_text(x, max_chars=100):
 def get_heatmap_color(ratio):
     """
     Given a ratio between 0 and 1, interpolate between:
-      - 0: #ef476f (RGB: 239,71,111)
-      - 0.5: #ffd166 (RGB: 255,209,102)
-      - 1: #06d6a0 (RGB: 6,214,160)
+      - 0: #ef476f (red)
+      - 0.5: #ffd166 (yellow)
+      - 1: #06d6a0 (green)
     """
     # Normalize RGB values to 0-1.
-    c0 = (239/255, 71/255, 111/255)    # ratio 0
-    c_mid = (255/255, 209/255, 102/255)  # ratio 0.5
-    c1 = (6/255, 214/255, 160/255)       # ratio 1
+    c0 = (239/255, 71/255, 111/255)    # ratio 0: red
+    c_mid = (255/255, 209/255, 102/255)  # ratio 0.5: yellow
+    c1 = (6/255, 214/255, 160/255)       # ratio 1: green
 
     if ratio <= 0.5:
         w = ratio / 0.5
@@ -91,7 +91,7 @@ def color_cells_dynamic(row):
         else:
             cell = row[col]
             if pd.isna(cell):
-                # Force white background with black font for NaN.
+                # Force white background with black text for NaN.
                 styles.append("background-color: white; color: black;")
             else:
                 cell_str = str(cell).strip()
@@ -107,9 +107,10 @@ def color_cells_dynamic(row):
                     except Exception:
                         ratio = 0.0
                 ratio = max(0, min(1, ratio))
-                hex_color = get_heatmap_color(ratio)
-                # Always use black font for readability.
-                styles.append(f"background-color: {hex_color}; color: black;")
+                # Reverse the ratio for the desired color order.
+                hex_color = get_heatmap_color(1 - ratio)
+                # Use white font.
+                styles.append(f"background-color: {hex_color}; color: white;")
     return styles
 
 # ---------------------------
@@ -205,8 +206,9 @@ if st.session_state.matches:
                 result_df = result_df.reset_index()
 
                 # ---------------------------
-                # Apply the Dynamic Color Styling (Heatmap)
+                # Display Scimago Results Header and Heatmap
                 # ---------------------------
+                st.markdown("<h3>Scimago results</h3>", unsafe_allow_html=True)
                 styled_df = result_df.style.apply(color_cells_dynamic, axis=1).hide(axis="index")
                 st.markdown(styled_df.to_html(), unsafe_allow_html=True)
                 
@@ -221,6 +223,23 @@ if st.session_state.matches:
                 )
                 
                 # ---------------------------
+                # Display OpenAlex Results Header and Total Publications
+                # ---------------------------
+                st.markdown("<h3>OpenAlex results</h3>", unsafe_allow_html=True)
+                try:
+                    total_pubs_int = int(record_total := df_enriched[
+                        (df_enriched["Institution"] == institution_name) &
+                        (df_enriched["Scimago_country_code"] == country_code)
+                    ].iloc[0].get("Total_Publications", "no match"))
+                    total_pubs_str = f"{total_pubs_int:,}"
+                except Exception:
+                    total_pubs_str = "no match"
+                st.markdown(
+                    f"<br><b>Total publications (articles only) for the period 2015-2024: {total_pubs_str}</b></br><br></br>",
+                    unsafe_allow_html=True
+                )
+                
+                # ---------------------------
                 # Additional Enrichment and Histograms
                 # ---------------------------
                 df_filtered = df_enriched[
@@ -229,42 +248,35 @@ if st.session_state.matches:
                 ]
                 if not df_filtered.empty:
                     record = df_filtered.iloc[0]
-                    total_pubs = record.get("Total_Publications", "no match")
                     fields_str = record.get("fields", "")
                     subfields_str = record.get("Top_30_Subfields", "")
                     sdg_str = record.get("SDG", "")
                     topics_str = record.get("Top_50_Topics", "")
 
+                    # Process fields, subfields, and SDGs data
                     try:
-                        total_pubs_int = int(total_pubs)
+                        total_pubs_int = int(record.get("Total_Publications", "0"))
                     except Exception:
                         total_pubs_int = None
 
-                    st.markdown(
-                        f"<br><b>Total publications (articles only) for the period 2015-2024: {total_pubs}</b></br><br></br>",
-                        unsafe_allow_html=True
-                    )
-
-                    # Process fields, subfields, and SDGs data
-                    fields_data = parse_topics_string(fields_str)
-                    subfields_data = parse_topics_string(subfields_str)
-                    if fields_data and total_pubs_int:
+                    if fields_str and total_pubs_int:
                         fields_data = [(name.strip(), count, count/total_pubs_int*100) 
-                                       for name, count in fields_data if (count/total_pubs_int*100) > 5]
+                                       for name, count in parse_topics_string(fields_str)
+                                       if (count/total_pubs_int*100) > 5]
                         fields_data = sorted(fields_data, key=lambda x: x[2], reverse=True)
                     else:
                         fields_data = []
-                    if subfields_data and total_pubs_int:
+                    if subfields_str and total_pubs_int:
                         subfields_data = [(name.strip(), count, count/total_pubs_int*100) 
-                                          for name, count in subfields_data if (count/total_pubs_int*100) > 3]
+                                          for name, count in parse_topics_string(subfields_str)
+                                          if (count/total_pubs_int*100) > 3]
                         subfields_data = sorted(subfields_data, key=lambda x: x[2], reverse=True)
                     else:
                         subfields_data = []
-                    sdg_data = parse_topics_string(sdg_str)
-                    if sdg_data and total_pubs_int:
-                        # Use threshold of 1%
+                    if sdg_str and total_pubs_int:
                         sdg_data = [(name.strip(), count, count/total_pubs_int*100)
-                                    for name, count in sdg_data if (count/total_pubs_int*100) > 1]
+                                    for name, count in parse_topics_string(sdg_str)
+                                    if (count/total_pubs_int*100) > 1]
                         sdg_data = sorted(sdg_data, key=lambda x: x[2], reverse=True)
                     else:
                         sdg_data = []
@@ -294,7 +306,7 @@ if st.session_state.matches:
                             ax_fields.annotate(f"{count:,}",
                                                xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                xytext=(3, 0), textcoords="offset points",
-                                               va='center', fontsize=12)
+                                               va='center', fontsize=10)
                         ax_fields.set_yticks(range(len(names_fields)))
                         ax_fields.set_yticklabels(
                             ["\n".join(textwrap.wrap(label, width=30)) for label in names_fields],
@@ -323,7 +335,7 @@ if st.session_state.matches:
                             ax_subfields.annotate(f"{count:,}",
                                                   xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                   xytext=(3, 0), textcoords="offset points",
-                                                  va='center', fontsize=12)
+                                                  va='center', fontsize=10)
                         ax_subfields.set_yticks(range(len(names_subfields)))
                         ax_subfields.set_yticklabels(
                             ["\n".join(textwrap.wrap(label, width=33)) for label in names_subfields],
@@ -353,7 +365,7 @@ if st.session_state.matches:
                             ax_sdgs.annotate(f"{count:,}",
                                              xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                              xytext=(3, 0), textcoords="offset points",
-                                             va='center', fontsize=12)
+                                             va='center', fontsize=10)
                         ax_sdgs.set_yticks(range(len(names_sdgs)))
                         ax_sdgs.set_yticklabels(
                             ["\n".join(textwrap.wrap(label, width=30)) for label in names_sdgs],
