@@ -567,10 +567,10 @@ if "matches" in st.session_state and st.session_state.matches:
                 # Second UI: Benchmarking Section
                 # ---------------------------
                 st.markdown("<h3>Benchmarking</h3>", unsafe_allow_html=True)
-                rank_range = st.number_input("Rank Range", value=100, min_value=1, max_value=500, step=1)
+                rank_range = st.number_input("Rank Range", value=100, min_value=1, max_value=1000, step=1)
                 min_appearances = st.number_input("Min. Appearances", value=3, min_value=1, max_value=100, step=1)
-                min_pubs = st.number_input("Min. pubs", value=100, min_value=0, max_value=1000000, step=1)
-                max_pubs = st.number_input("Max. pubs", value=10000, min_value=0, max_value=1000000, step=1)
+                min_pubs = st.number_input("Min. pubs", value=100, min_value=0, max_value=999999999, step=1)
+                max_pubs = st.number_input("Max. pubs", value=10000, min_value=0, max_value=999999999, step=1)
                 europe_only = st.checkbox("Europe only", value=True)
 
                 if st.button("Run Benchmark"):
