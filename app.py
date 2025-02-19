@@ -60,8 +60,8 @@ def truncate_text(x, max_chars=100):
 # ---------------------------
 def color_cells_dynamic(row):
     styles = []
-    # Force the use of the reversed veridis colormap.
-    cmap = matplotlib.cm.get_cmap("veridis_r")
+    # Force the use of the reversed viridis colormap.
+    cmap = matplotlib.cm.get_cmap("viridis_r")
     for col in row.index:
         if col == "Ranking":
             styles.append("")
