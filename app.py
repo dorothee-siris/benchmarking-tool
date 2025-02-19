@@ -46,6 +46,11 @@ sdg_numbers = {
     "peace, justice and strong institutions": 16,
     "partnerships for the goals": 17
 }
+# Additional variants (if keys from data differ)
+sdg_variants = {
+    "peace and strong institution": 16,
+    "industry and innovations": 9,
+}
 
 # ---------------------------
 # Helper Functions
@@ -75,15 +80,15 @@ def get_heatmap_color(ratio):
 
     if ratio <= 0.5:
         w = ratio / 0.5
-        r = (1 - w)*c0[0] + w*c_mid[0]
-        g = (1 - w)*c0[1] + w*c_mid[1]
-        b = (1 - w)*c0[2] + w*c_mid[2]
+        r_val = (1 - w)*c0[0] + w*c_mid[0]
+        g_val = (1 - w)*c0[1] + w*c_mid[1]
+        b_val = (1 - w)*c0[2] + w*c_mid[2]
     else:
         w = (ratio - 0.5) / 0.5
-        r = (1 - w)*c_mid[0] + w*c1[0]
-        g = (1 - w)*c_mid[1] + w*c1[1]
-        b = (1 - w)*c_mid[2] + w*c1[2]
-    return matplotlib.colors.rgb2hex((r, g, b))
+        r_val = (1 - w)*c_mid[0] + w*c1[0]
+        g_val = (1 - w)*c_mid[1] + w*c1[1]
+        b_val = (1 - w)*c_mid[2] + w*c1[2]
+    return matplotlib.colors.rgb2hex((r_val, g_val, b_val))
 
 def fix_width(cell, width=11):
     """Return a string forced to a fixed width (left-justified)."""
@@ -102,6 +107,7 @@ def color_cells_dynamic(row):
             styles.append("")  # Leave Ranking column unmodified.
         else:
             cell = row[col]
+            # Check for missing data (NaN or "no data")
             if pd.isna(cell) or str(cell).strip().lower() == "no data":
                 # Force white background, black text, and smaller font for missing data.
                 styles.append("background-color: white; color: black; font-size: 10px;")
@@ -118,7 +124,7 @@ def color_cells_dynamic(row):
                     except Exception:
                         ratio = 0.0
                 ratio = max(0, min(1, ratio))
-                # Reverse ratio for desired order
+                # Reverse ratio for desired color order
                 hex_color = get_heatmap_color(1 - ratio)
                 styles.append(f"background-color: {hex_color}; color: black;")
     return styles
@@ -291,7 +297,12 @@ if st.session_state.matches:
                     sdg_data_labeled = []
                     for name, count, perc in sdg_data:
                         key = name.lower().replace(",", "").replace("’", "'")
-                        number = sdg_numbers.get(key, "?")
+                        if key in sdg_numbers:
+                            number = sdg_numbers[key]
+                        elif key in sdg_variants:
+                            number = sdg_variants[key]
+                        else:
+                            number = "?"
                         new_label = f"{name} (SDG {number})"
                         sdg_data_labeled.append((new_label, count, perc))
                     
@@ -303,7 +314,7 @@ if st.session_state.matches:
                     # ---------------------------
                     if fields_data:
                         st.subheader("Top Fields (>5%)")
-                        fig_fields, ax_fields = plt.subplots(figsize=(12, 6))
+                        fig_fields, ax_fields = plt.subplots(figsize=(10, 5))
                         names_fields = [x[0] for x in fields_data]
                         percentages_fields = [x[2] for x in fields_data]
                         bars = ax_fields.barh(names_fields, percentages_fields, color='#16a4d8')
@@ -314,9 +325,9 @@ if st.session_state.matches:
                             ax_fields.annotate(f"{count:,}",
                                                xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                xytext=(3, 0), textcoords="offset points",
-                                               va='center', fontsize=12)
+                                               va='center', fontsize=10)
                         ax_fields.margins(x=0.05)
-                        st.pyplot(fig_fields, use_container_width=True)
+                        st.pyplot(fig_fields)  # Removed use_container_width=True
                     else:
                         st.info("No fields data >5%.")
                     
@@ -325,7 +336,7 @@ if st.session_state.matches:
                     # ---------------------------
                     if subfields_data:
                         st.subheader("Top Subfields (>3%)")
-                        fig_subfields, ax_subfields = plt.subplots(figsize=(10, 8))
+                        fig_subfields, ax_subfields = plt.subplots(figsize=(10, 6))
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
                         bars = ax_subfields.barh(names_subfields, percentages_subfields, color='#60dbe8')
@@ -336,9 +347,8 @@ if st.session_state.matches:
                             ax_subfields.annotate(f"{count:,}",
                                                   xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                   xytext=(3, 0), textcoords="offset points",
-                                                  va='center', fontsize=12)
-                        ax_subfields.margins(x=0.05)
-                        st.pyplot(fig_subfields, use_container_width=True)
+                                                  va='center', fontsize=10)
+                        st.pyplot(fig_subfields)
                     else:
                         st.info("No subfields data >3%.")
                     
@@ -347,7 +357,7 @@ if st.session_state.matches:
                     # ---------------------------
                     if sdg_data_labeled:
                         st.subheader("Top SDGs (>1%)")
-                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(10, 6))
+                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(10, 5))
                         names_sdgs = [x[0] for x in sdg_data_labeled]
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
                         bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#9b5fe0')
@@ -358,9 +368,8 @@ if st.session_state.matches:
                             ax_sdgs.annotate(f"{count:,}",
                                              xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                              xytext=(3, 0), textcoords="offset points",
-                                             va='center', fontsize=12)
-                        ax_sdgs.margins(x=0.05)
-                        st.pyplot(fig_sdgs, use_container_width=True)
+                                             va='center', fontsize=10)
+                        st.pyplot(fig_sdgs)
                     else:
                         st.info("No SDGs data >1%.")
                     
