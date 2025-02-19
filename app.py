@@ -540,8 +540,21 @@ if "current_institution" in st.session_state:
 st.markdown("<h3>Benchmarking Parameters</h3>", unsafe_allow_html=True)
 if "current_institution" in st.session_state and "target_appearances_2024" in st.session_state and "target_total_publications" in st.session_state:
     target_inst = st.session_state.current_institution[0]
+    
+    # Format the total publications with commas
+    formatted_pubs = "{:,}".format(st.session_state.target_total_publications)
+    
+    # Use div with markdown for proper styling
     st.markdown(
-        f"As a reminder, **{target_inst}** appears in <span style='color:red'>{st.session_state.target_appearances_2024}</span> Scimago thematic rankings in 2024 and adds up to <span style='color:red'>{st.session_state.target_total_publications}</span> publications (articles only) for the period 2015-2024."
+        f'''
+        <div style="font-size: 1rem; margin: 0.5rem 0;">
+            As a reminder, <b>{target_inst}</b> appears in 
+            <b style="color: #ef476f">{st.session_state.target_appearances_2024}</b> Scimago thematic rankings in 2024 
+            and adds up to <b style="color: #ef476f">{formatted_pubs}</b> publications (articles only) 
+            for the period 2015-2024.
+        </div>
+        ''',
+        unsafe_allow_html=True
     )
 st.number_input("Rank Range", value=100, min_value=1, max_value=1000, step=1, key="rank_range")
 st.number_input("Min. Appearances", value=3, min_value=1, max_value=100, step=1, key="min_appearances")
