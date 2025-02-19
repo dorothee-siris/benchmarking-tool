@@ -316,7 +316,6 @@ if st.session_state.matches:
                                                xytext=(3, 0), textcoords="offset points",
                                                va='center', fontsize=12)
                         ax_fields.margins(x=0.05)
-                        ax_fields.tick_params(axis='both',fontsize=12)
                         plt.tight_layout()
                         st.pyplot(fig_fields, use_container_width=True)
                     else:
@@ -340,7 +339,6 @@ if st.session_state.matches:
                                                   xytext=(3, 0), textcoords="offset points",
                                                   va='center', fontsize=12)
                         ax_subfields.margins(x=0.05)
-                        ax_subfields.tick_params(axis='both',fontsize=12)
                         plt.tight_layout()
                         st.pyplot(fig_subfields, use_container_width=True)
                     else:
@@ -364,7 +362,6 @@ if st.session_state.matches:
                                              xytext=(3, 0), textcoords="offset points",
                                              va='center', fontsize=12)
                         ax_sdgs.margins(x=0.05)
-                        ax_sdgs.tick_params(axis='both',fontsize=12)
                         plt.tight_layout()
                         st.pyplot(fig_sdgs, use_container_width=True)
                     else:
