@@ -61,7 +61,7 @@ def truncate_text(x, max_chars=100):
 def color_cells_dynamic(row):
     styles = []
     try:
-        # Get the reversed "vanimo" colormap.
+        # Use the reversed "vanimo" colormap
         cmap = matplotlib.cm.get_cmap("vanimo_r")
     except Exception:
         # Fallback to reversed "viridis" if "vanimo" is not available.
@@ -72,11 +72,12 @@ def color_cells_dynamic(row):
         else:
             cell = row[col]
             if pd.isna(cell):
-                styles.append("")
+                # Force white background and black font for NaN values
+                styles.append("background-color: white; color: black;")
             else:
                 cell_str = str(cell).strip()
                 if cell_str.startswith("—"):
-                    # Treat missing rank as worst (ratio = 1)
+                    # Treat cells with "-" as worst, ratio = 1
                     ratio = 1.0
                 else:
                     try:
@@ -86,9 +87,7 @@ def color_cells_dynamic(row):
                         ratio = rank_val / total_val if total_val > 0 else 1.0
                     except Exception:
                         ratio = 1.0
-                # Clamp ratio between 0 and 1
                 ratio = max(0, min(1, ratio))
-                # Get the hex color from the reversed colormap
                 hex_color = matplotlib.colors.rgb2hex(cmap(ratio))
                 styles.append(f"background-color: {hex_color}")
     return styles
@@ -194,8 +193,10 @@ if st.session_state.matches:
                 total_appearances = sum(summary_counts.values())
                 summary_parts = [f"{summary_counts[year]} in {year}" for year in years]
                 st.markdown(
-                    f"<br><b>{institution_name} ({country_code}) appears {total_appearances} times in total: </b> "
-                    + ", ".join(summary_parts) + "<b>.</b></br>",
+                    "<br>" +
+                    "Rankings with 'nan' values started in 2022.<br>" +
+                    f"{institution_name} ({country_code}) appears {total_appearances} times in total: " +
+                    ", ".join(summary_parts) + ".",
                     unsafe_allow_html=True
                 )
                 
@@ -219,8 +220,10 @@ if st.session_state.matches:
                     except Exception:
                         total_pubs_int = None
 
-                    st.markdown(f"<br><b>Total Publications (2015-2024): {total_pubs}</b></br><br></br>",
-                                unsafe_allow_html=True)
+                    st.markdown(
+                        f"<br><b>Total publications (articles only) for the period 2015-2024: {total_pubs}</b></br><br></br>",
+                        unsafe_allow_html=True
+                    )
 
                     # Process fields, subfields, and SDGs data
                     fields_data = parse_topics_string(fields_str)
@@ -239,8 +242,9 @@ if st.session_state.matches:
                         subfields_data = []
                     sdg_data = parse_topics_string(sdg_str)
                     if sdg_data and total_pubs_int:
+                        # Change threshold to 1%
                         sdg_data = [(name.strip(), count, count/total_pubs_int*100)
-                                    for name, count in sdg_data if (count/total_pubs_int*100) > 3]
+                                    for name, count in sdg_data if (count/total_pubs_int*100) > 1]
                         sdg_data = sorted(sdg_data, key=lambda x: x[2], reverse=True)
                     else:
                         sdg_data = []
@@ -255,19 +259,23 @@ if st.session_state.matches:
                     # Histogram: Top Fields
                     # ---------------------------
                     if fields_data:
-                        fig_fields, ax_fields = plt.subplots(figsize=(8, 6))
+                        fig_fields, ax_fields = plt.subplots(figsize=(8, 8))
                         names_fields = [x[0] for x in fields_data]
                         percentages_fields = [x[2] for x in fields_data]
                         bars = ax_fields.barh(names_fields, percentages_fields, color='skyblue')
                         ax_fields.set_xlabel("Percentage (%)", fontsize=14)
-                        ax_fields.set_title("Top Fields (>5%)", fontsize=16, weight="semibold")
+                        ax_fields.set_title("Top Fields (>5%)", fontsize=14, weight="semibold")
                         ax_fields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, fields_data):
-                            ax_fields.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2, f"{count}", 
-                                           va='center', fontsize=12)
+                            ax_fields.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
+                                           f"{count}", va='center', fontsize=12)
                         ax_fields.set_yticks(range(len(names_fields)))
-                        ax_fields.set_yticklabels(["\n".join(textwrap.wrap(label, width=20)) for label in names_fields])
-                        ax_fields.tick_params(axis='both', labelsize=12)
+                        ax_fields.set_yticklabels(
+                            ["\n".join(textwrap.wrap(label, width=30)) for label in names_fields],
+                            fontsize=10
+                        )
+                        ax_fields.tick_params(axis='both', labelsize=10)
+                        ax_fields.margins(x=0.1)
                         st.pyplot(fig_fields)
                         plt.close(fig_fields)
                     else:
@@ -277,19 +285,23 @@ if st.session_state.matches:
                     # Histogram: Top Subfields
                     # ---------------------------
                     if subfields_data:
-                        fig_subfields, ax_subfields = plt.subplots(figsize=(8, 6))
+                        fig_subfields, ax_subfields = plt.subplots(figsize=(8, 8))
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
                         bars = ax_subfields.barh(names_subfields, percentages_subfields, color='lightpink')
                         ax_subfields.set_xlabel("Percentage (%)", fontsize=14)
-                        ax_subfields.set_title("Top Subfields (>3%)", fontsize=16, weight="semibold")
+                        ax_subfields.set_title("Top Subfields (>3%)", fontsize=14, weight="semibold")
                         ax_subfields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, subfields_data):
-                            ax_subfields.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2, f"{count}", 
-                                              va='center', fontsize=12)
+                            ax_subfields.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
+                                              f"{count}", va='center', fontsize=12)
                         ax_subfields.set_yticks(range(len(names_subfields)))
-                        ax_subfields.set_yticklabels(["\n".join(textwrap.wrap(label, width=30)) for label in names_subfields])
+                        ax_subfields.set_yticklabels(
+                            ["\n".join(textwrap.wrap(label, width=30)) for label in names_subfields],
+                            fontsize=10
+                        )
                         ax_subfields.tick_params(axis='both', labelsize=10)
+                        ax_subfields.margins(x=0.1)
                         st.pyplot(fig_subfields)
                         plt.close(fig_subfields)
                     else:
@@ -299,23 +311,27 @@ if st.session_state.matches:
                     # Histogram: Top SDGs
                     # ---------------------------
                     if sdg_data_labeled:
-                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(8, 6))
+                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(8, 8))
                         names_sdgs = [x[0] for x in sdg_data_labeled]
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
                         bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#E6CCFF')
                         ax_sdgs.set_xlabel("Percentage (%)", fontsize=14)
-                        ax_sdgs.set_title("Top SDGs (>3%)", fontsize=16, weight="semibold")
+                        ax_sdgs.set_title("Top SDGs (>1%)", fontsize=14, weight="semibold")
                         ax_sdgs.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, sdg_data_labeled):
-                            ax_sdgs.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2, f"{count}", 
-                                         va='center', fontsize=12)
+                            ax_sdgs.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
+                                         f"{count}", va='center', fontsize=12)
                         ax_sdgs.set_yticks(range(len(names_sdgs)))
-                        ax_sdgs.set_yticklabels(["\n".join(textwrap.wrap(label, width=20)) for label in names_sdgs])
-                        ax_sdgs.tick_params(axis='both', labelsize=12)
+                        ax_sdgs.set_yticklabels(
+                            ["\n".join(textwrap.wrap(label, width=30)) for label in names_sdgs],
+                            fontsize=10
+                        )
+                        ax_sdgs.tick_params(axis='both', labelsize=10)
+                        ax_sdgs.margins(x=0.1)
                         st.pyplot(fig_sdgs)
                         plt.close(fig_sdgs)
                     else:
-                        st.info("No SDGs data >3%.")
+                        st.info("No SDGs data >1%.")
                     
                     # ---------------------------
                     # Topics Data: Classic Top 50 Table
@@ -329,10 +345,16 @@ if st.session_state.matches:
                         topics_df = topics_df.sort_values(by="Count", ascending=False).reset_index(drop=True)
                         topics_df = topics_df.head(50)
                         topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
-                        custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list("white_yellow", ["#FFFFFF", "#FFFF99"])
-                        max_ratio = topics_df["Ratio"].max()
+                        # Create a custom colormap with three reference points:
+                        # 0%: #FFFFFF, 3%: #d9bc2b, 6%: #695806.
+                        # Any ratio above 6% is clamped.
+                        custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
+                            "custom_yellow", ["#FFFFFF", "#d9bc2b", "#695806"]
+                        )
+                        # We set vmin=0 and vmax=6 so that ratios above 6% receive the same color as 6%
                         styled_topics_df = topics_df.style.format({"Ratio": "{:.2f} %"}).background_gradient(
-                            subset=["Ratio"], cmap=custom_cmap, vmin=0, vmax=max_ratio)
+                            subset=["Ratio"], cmap=custom_cmap, vmin=0, vmax=6
+                        ).hide(axis="index")
                         st.markdown(styled_topics_df.to_html(), unsafe_allow_html=True)
                     else:
                         st.info("No topics data available.")
