@@ -371,6 +371,7 @@ if "current_institution" in st.session_state:
             for col in years:
                 result_df[col] = result_df[col].apply(lambda x: fix_width(x, 11))
             
+            # In the Scimago results section:
             st.markdown("<h3>Scimago results</h3>", unsafe_allow_html=True)
             st.markdown("Thematic rankings with no data started in 2022.", unsafe_allow_html=True)
             styled_df = result_df.style.apply(color_cells_dynamic, axis=1).hide(axis="index")
@@ -383,7 +384,7 @@ if "current_institution" in st.session_state:
                 unsafe_allow_html=True
             )
             # Store the number of appearances in 2024 rankings:
-            target_appearances_2024 = summary_counts[2024]
+            st.session_state.target_appearances = summary_counts[2024]
 
             st.markdown("<h3>OpenAlex results</h3>", unsafe_allow_html=True)
             try:
@@ -394,9 +395,8 @@ if "current_institution" in st.session_state:
                 total_pubs_str = f"{total_pubs_int:,}"
             except Exception:
                 total_pubs_str = "no match"
-            
-            # Now store these values in session_state:
-            st.session_state.target_appearances_2024 = target_appearances_2024
+
+            # Store these values in session_state:
             st.session_state.target_total_publications = total_pubs_str
 
             st.markdown(f"<b>Total publications (articles only) for 2015-2024: <span style='color:red'>{total_pubs_str}</span></b>", unsafe_allow_html=True)
@@ -538,19 +538,14 @@ if "current_institution" in st.session_state:
 # UI: Second Section – Benchmarking Parameters
 # ---------------------------
 st.markdown("<h3>Benchmarking Parameters</h3>", unsafe_allow_html=True)
-if "current_institution" in st.session_state and "target_appearances_2024" in st.session_state and "target_total_publications" in st.session_state:
+if "current_institution" in st.session_state and "target_appearances" in st.session_state and "target_total_publications" in st.session_state:
     target_inst = st.session_state.current_institution[0]
-    
-    # Format the total publications with commas
-    formatted_pubs = "{:,}".format(st.session_state.target_total_publications)
-    
-    # Use div with markdown for proper styling
     st.markdown(
         f'''
         <div style="font-size: 1rem; margin: 0.5rem 0;">
             As a reminder, <b>{target_inst}</b> appears in 
-            <b style="color: #ef476f">{st.session_state.target_appearances_2024}</b> Scimago thematic rankings in 2024 
-            and adds up to <b style="color: #ef476f">{formatted_pubs}</b> publications (articles only) 
+            <b style="color: #ef476f">{st.session_state.target_appearances}</b> Scimago thematic rankings in 2024 
+            and adds up to <b style="color: #ef476f">{st.session_state.target_total_publications}</b> publications (articles only) 
             for the period 2015-2024.
         </div>
         ''',
