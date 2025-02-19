@@ -11,8 +11,8 @@ import textwrap
 # ---------------------------
 @st.cache_data
 def load_data():
-    df_master = pd.read_csv("Scimago_results_2021_2024.csv", low_memory=False)
-    df_enriched = pd.read_csv("unique_institutions_enriched.csv", encoding="utf-8-sig")
+    df_master = pd.read_csv("data/Scimago_results_2021_2024.csv", low_memory=False)
+    df_enriched = pd.read_csv("data/unique_institutions_enriched.csv", encoding="utf-8-sig")
     return df_master, df_enriched
 
 df_master, df_enriched = load_data()
@@ -102,7 +102,8 @@ if "matches" not in st.session_state:
 # ---------------------------
 # Streamlit Layout
 # ---------------------------
-st.title("Institution Ranking Dashboard")
+st.title("Bench:red[Up]")
+st.header("On your mark... bench!")
 
 # Search Box
 search_str = st.text_input("Enter partial institution name", placeholder="Enter partial institution name")
