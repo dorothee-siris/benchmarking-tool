@@ -100,6 +100,190 @@ def fix_width(cell, width=11):
     return s.ljust(width)
 
 # ---------------------------
+# Benchmarking Function
+# ---------------------------
+def run_benchmark(target_key, rank_range, min_appearances):
+    # Filter 2024 rankings
+    df_master_2024 = df_master[df_master['year'] == 2024].copy()
+    df_master_2024['lookup_key'] = list(zip(df_master_2024['institution'], df_master_2024['country']))
+    df_enriched['lookup_key'] = list(zip(df_enriched['Institution'], df_enriched['Scimago_country_code']))
+    df_enriched['Total_Publications'] = pd.to_numeric(df_enriched['Total_Publications'], errors='coerce').fillna(0)
+    
+    target_rows = df_master_2024[df_master_2024['lookup_key'] == target_key]
+    if target_rows.empty:
+        st.error("Target institution not found in 2024 rankings.")
+        return None
+    candidate_records = []
+    for _, row in target_rows.iterrows():
+        ranking_code = row['code']
+        ranking_name = row['name of the ranking']
+        target_rank = row['rank']
+        lower_bound = max(target_rank - rank_range, 1)
+        upper_bound = target_rank + rank_range
+        candidates = df_master_2024[
+            (df_master_2024['code'] == ranking_code) &
+            (df_master_2024['rank'] >= lower_bound) &
+            (df_master_2024['rank'] <= upper_bound)
+        ]
+        candidates = candidates[candidates['lookup_key'] != target_key]
+        for _, cand in candidates.iterrows():
+            candidate_records.append({
+                'lookup_key': cand['lookup_key'],
+                'institution': cand['institution'],
+                'ranking_detail': f"{ranking_name} ({int(cand['rank'])})"
+            })
+    if not candidate_records:
+        st.error("No candidate institutions found within the specified rank range.")
+        return None
+    candidates_df = pd.DataFrame(candidate_records)
+    aggregated = candidates_df.groupby('lookup_key').agg({
+        'institution': 'first',
+        'ranking_detail': lambda x: "; ".join(x),
+        'lookup_key': 'count'
+    }).rename(columns={'lookup_key': 'appearances'}).reset_index()
+    aggregated = aggregated[aggregated['appearances'] >= min_appearances]
+    merged = pd.merge(aggregated, df_enriched, on='lookup_key', how='left')
+    
+    target_enriched_row = df_enriched[df_enriched['lookup_key'] == target_key]
+    if target_enriched_row.empty:
+        st.error("Target institution enriched data not found.")
+        return None
+    target_enriched = target_enriched_row.iloc[0]
+    target_total_pubs = float(target_enriched['Total_Publications'])
+    
+    # Helper functions for metrics
+    def parse_metrics(metric_str):
+        result = {}
+        if pd.isna(metric_str) or metric_str.strip() == "":
+            return result
+        items = metric_str.split(";")
+        for item in items:
+            item = item.strip()
+            if "(" in item and ")" in item:
+                try:
+                    open_paren = item.rindex("(")
+                    close_paren = item.rindex(")")
+                    field_name = item[:open_paren].strip()
+                    count_str = item[open_paren+1:close_paren].strip()
+                    count_val = float(count_str)
+                    result[field_name] = count_val
+                except:
+                    pass
+        return result
+    
+    def compute_percentage(metrics_dict, total):
+        perc_dict = {}
+        for k, v in metrics_dict.items():
+            perc_dict[k] = (v / total) * 100 if total > 0 else 0
+        return perc_dict
+    
+    target_fields = parse_metrics(target_enriched.get('fields', ''))
+    target_fields_perc = compute_percentage(target_fields, target_total_pubs)
+    
+    target_subfields = parse_metrics(target_enriched.get('Top_30_Subfields', ''))
+    target_subfields_perc = compute_percentage(target_subfields, target_total_pubs)
+    
+    target_topics = parse_metrics(target_enriched.get('Top_50_Topics', ''))
+    target_topics_perc = compute_percentage(target_topics, target_total_pubs)
+    
+    target_sdgs = parse_metrics(target_enriched.get('SDG', ''))
+    target_sdgs_perc = compute_percentage(target_sdgs, target_total_pubs)
+    
+    def compute_similar(row):
+        try:
+            total_pubs = float(row.get('Total_Publications', 0))
+        except:
+            total_pubs = 0
+        fields_dict = parse_metrics(row.get('fields', ''))
+        fields_perc = compute_percentage(fields_dict, total_pubs) if total_pubs > 0 else {}
+        similar_fields = {f: fields_perc[f] for f in fields_perc 
+                            if f in target_fields_perc and fields_perc[f] > 5 and target_fields_perc[f] > 5}
+        similar_fields_sorted = sorted(similar_fields.items(), key=lambda x: x[1], reverse=True)
+        similar_fields_str = "; ".join([f"{k} ({v:.1f}%)" for k, v in similar_fields_sorted])
+        
+        subfields_dict = parse_metrics(row.get('Top_30_Subfields', ''))
+        subfields_perc = compute_percentage(subfields_dict, total_pubs) if total_pubs > 0 else {}
+        similar_subfields = {sf: subfields_perc[sf] for sf in subfields_perc 
+                                if sf in target_subfields_perc and subfields_perc[sf] > 3 and target_subfields_perc[sf] > 3}
+        similar_subfields_sorted = sorted(similar_subfields.items(), key=lambda x: x[1], reverse=True)
+        similar_subfields_str = "; ".join([f"{k} ({v:.1f}%)" for k, v in similar_subfields_sorted])
+        
+        topics_dict = parse_metrics(row.get('Top_50_Topics', ''))
+        topics_perc = compute_percentage(topics_dict, total_pubs) if total_pubs > 0 else {}
+        similar_topics = {t: topics_perc[t] for t in topics_perc if t in target_topics_perc}
+        similar_topics_sorted = sorted(similar_topics.items(), key=lambda x: x[1], reverse=True)
+        similar_topics_str = "; ".join([f"{k} ({int(topics_dict.get(k, 0))}, {v:.1f}%)" for k, v in similar_topics_sorted])
+        similar_topics_count = len(similar_topics)
+        
+        sdgs_dict = parse_metrics(row.get('SDG', ''))
+        sdgs_perc = compute_percentage(sdgs_dict, total_pubs) if total_pubs > 0 else {}
+        similar_sdgs = {s: sdgs_perc[s] for s in sdgs_perc
+                        if s in target_sdgs_perc and sdgs_perc[s] > 3 and target_sdgs_perc[s] > 3}
+        similar_sdgs_sorted = sorted(similar_sdgs.items(), key=lambda x: x[1], reverse=True)
+        similar_sdgs_str = "; ".join([f"{k} ({int(sdgs_dict.get(k, 0))}, {v:.1f}%)" for k, v in similar_sdgs_sorted])
+        
+        return pd.Series({
+            'similar_fields': similar_fields_str,
+            'similar_subfields': similar_subfields_str,
+            'similar_topics_count': similar_topics_count,
+            'similar_topics_details': similar_topics_str,
+            'similar_sdgs': similar_sdgs_str
+        })
+    
+    similar_metrics = merged.apply(compute_similar, axis=1)
+    final_df = pd.concat([merged, similar_metrics], axis=1)
+
+    final_df = final_df[[ 
+        'ROR_name', 
+        'Scimago_country_code', 
+        'Scimago_country_name', 
+        'appearances', 
+        'ranking_detail', 
+        'Total_Publications',
+        'similar_fields', 
+        'similar_subfields', 
+        'similar_topics_count', 
+        'similar_topics_details',
+        'similar_sdgs'
+    ]]
+    
+    final_df = final_df.rename(columns={
+        'ROR_name': 'Institution name',
+        'Scimago_country_name': 'Country name',
+        'appearances': 'Similar rankings (count)',
+        'Total_Publications': 'Total publications',
+        'similar_fields': 'Similar top fields',
+        'similar_subfields': 'Similar top subfields',
+        'similar_topics_count': 'Similar top topics (count)',
+        'similar_topics_details': 'Similar top topics',
+        'ranking_detail': 'Similar rankings (details)',
+        'similar_sdgs': 'Similar top SDGs'
+    })
+    
+    final_df['Total publications'] = final_df['Total publications'].fillna(0).round().astype(int)
+    
+    final_df = final_df[
+        (final_df['Total publications'] >= min_pubs) &
+        (final_df['Total publications'] <= max_pubs)
+    ].reset_index(drop=True)
+    
+    eur_countries = [
+        'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BLR', 'BGR', 'CHE', 'CYP', 'CZE',
+        'DEU', 'DNK', 'ESP', 'EST', 'FIN', 'FRA','GBR', 'GEO', 'GRC', 'HRV', 'HUN', 'IRL',
+        'ISL', 'ITA', 'KAZ', 'KOS', 'LIE', 'LTU', 'LUX', 'LVA', 'MCO', 'MDA', 'MKD', 'MLT',
+        'MNE', 'NLD', 'NOR', 'POL', 'PRT', 'ROU', 'SMR', 'SRB', 'SVK', 'SVN', 'SWE',
+        'TUR', 'UKR', 'VAT'
+    ]
+    if europe_only:
+        final_df = final_df[final_df['Country code'].isin(eur_countries)].reset_index(drop=True)
+    
+    # Remove sorting options and 'No.' column
+    final_df = final_df.reset_index(drop=True)
+    
+    display_df = final_df.applymap(lambda x: truncate_text(x, 100) if isinstance(x, str) else x)
+    return display_df
+
+# ---------------------------
 # Heatmap Styling Function
 # ---------------------------
 def color_cells_dynamic(row):
@@ -383,10 +567,10 @@ if "matches" in st.session_state and st.session_state.matches:
                 # Second UI: Benchmarking Section
                 # ---------------------------
                 st.markdown("<h3>Benchmarking</h3>", unsafe_allow_html=True)
-                rank_range = st.number_input("Rank Range", value=100, min_value=1, max_value=1000, step=1)
+                rank_range = st.number_input("Rank Range", value=100, min_value=1, max_value=500, step=1)
                 min_appearances = st.number_input("Min. Appearances", value=3, min_value=1, max_value=100, step=1)
-                min_pubs = st.number_input("Min. pubs", value=100, min_value=0, max_value=999999999, step=1)
-                max_pubs = st.number_input("Max. pubs", value=10000, min_value=0, max_value=999999999, step=1)
+                min_pubs = st.number_input("Min. pubs", value=100, min_value=0, max_value=1000000, step=1)
+                max_pubs = st.number_input("Max. pubs", value=10000, min_value=0, max_value=1000000, step=1)
                 europe_only = st.checkbox("Europe only", value=True)
 
                 if st.button("Run Benchmark"):
@@ -425,188 +609,3 @@ if "matches" in st.session_state and st.session_state.matches:
                         # Start index at 1
                         benchmark_df.index = benchmark_df.index + 1
                         st.dataframe(benchmark_df, use_container_width=True)
-
-                
-                # ---------------------------
-                # Benchmarking Function
-                # ---------------------------
-                def run_benchmark(target_key, rank_range, min_appearances):
-                    # Filter 2024 rankings
-                    df_master_2024 = df_master[df_master['year'] == 2024].copy()
-                    df_master_2024['lookup_key'] = list(zip(df_master_2024['institution'], df_master_2024['country']))
-                    df_enriched['lookup_key'] = list(zip(df_enriched['Institution'], df_enriched['Scimago_country_code']))
-                    df_enriched['Total_Publications'] = pd.to_numeric(df_enriched['Total_Publications'], errors='coerce').fillna(0)
-                    
-                    target_rows = df_master_2024[df_master_2024['lookup_key'] == target_key]
-                    if target_rows.empty:
-                        st.error("Target institution not found in 2024 rankings.")
-                        return None
-                    candidate_records = []
-                    for _, row in target_rows.iterrows():
-                        ranking_code = row['code']
-                        ranking_name = row['name of the ranking']
-                        target_rank = row['rank']
-                        lower_bound = max(target_rank - rank_range, 1)
-                        upper_bound = target_rank + rank_range
-                        candidates = df_master_2024[
-                            (df_master_2024['code'] == ranking_code) &
-                            (df_master_2024['rank'] >= lower_bound) &
-                            (df_master_2024['rank'] <= upper_bound)
-                        ]
-                        candidates = candidates[candidates['lookup_key'] != target_key]
-                        for _, cand in candidates.iterrows():
-                            candidate_records.append({
-                                'lookup_key': cand['lookup_key'],
-                                'institution': cand['institution'],
-                                'ranking_detail': f"{ranking_name} ({int(cand['rank'])})"
-                            })
-                    if not candidate_records:
-                        st.error("No candidate institutions found within the specified rank range.")
-                        return None
-                    candidates_df = pd.DataFrame(candidate_records)
-                    aggregated = candidates_df.groupby('lookup_key').agg({
-                        'institution': 'first',
-                        'ranking_detail': lambda x: "; ".join(x),
-                        'lookup_key': 'count'
-                    }).rename(columns={'lookup_key': 'appearances'}).reset_index()
-                    aggregated = aggregated[aggregated['appearances'] >= min_appearances]
-                    merged = pd.merge(aggregated, df_enriched, on='lookup_key', how='left')
-                    
-                    target_enriched_row = df_enriched[df_enriched['lookup_key'] == target_key]
-                    if target_enriched_row.empty:
-                        st.error("Target institution enriched data not found.")
-                        return None
-                    target_enriched = target_enriched_row.iloc[0]
-                    target_total_pubs = float(target_enriched['Total_Publications'])
-                    
-                    # Helper functions for metrics
-                    def parse_metrics(metric_str):
-                        result = {}
-                        if pd.isna(metric_str) or metric_str.strip() == "":
-                            return result
-                        items = metric_str.split(";")
-                        for item in items:
-                            item = item.strip()
-                            if "(" in item and ")" in item:
-                                try:
-                                    open_paren = item.rindex("(")
-                                    close_paren = item.rindex(")")
-                                    field_name = item[:open_paren].strip()
-                                    count_str = item[open_paren+1:close_paren].strip()
-                                    count_val = float(count_str)
-                                    result[field_name] = count_val
-                                except:
-                                    pass
-                        return result
-                    
-                    def compute_percentage(metrics_dict, total):
-                        perc_dict = {}
-                        for k, v in metrics_dict.items():
-                            perc_dict[k] = (v / total) * 100 if total > 0 else 0
-                        return perc_dict
-                    
-                    target_fields = parse_metrics(target_enriched.get('fields', ''))
-                    target_fields_perc = compute_percentage(target_fields, target_total_pubs)
-                    
-                    target_subfields = parse_metrics(target_enriched.get('Top_30_Subfields', ''))
-                    target_subfields_perc = compute_percentage(target_subfields, target_total_pubs)
-                    
-                    target_topics = parse_metrics(target_enriched.get('Top_50_Topics', ''))
-                    target_topics_perc = compute_percentage(target_topics, target_total_pubs)
-                    
-                    target_sdgs = parse_metrics(target_enriched.get('SDG', ''))
-                    target_sdgs_perc = compute_percentage(target_sdgs, target_total_pubs)
-                    
-                    def compute_similar(row):
-                        try:
-                            total_pubs = float(row.get('Total_Publications', 0))
-                        except:
-                            total_pubs = 0
-                        fields_dict = parse_metrics(row.get('fields', ''))
-                        fields_perc = compute_percentage(fields_dict, total_pubs) if total_pubs > 0 else {}
-                        similar_fields = {f: fields_perc[f] for f in fields_perc 
-                                          if f in target_fields_perc and fields_perc[f] > 5 and target_fields_perc[f] > 5}
-                        similar_fields_sorted = sorted(similar_fields.items(), key=lambda x: x[1], reverse=True)
-                        similar_fields_str = "; ".join([f"{k} ({v:.1f}%)" for k, v in similar_fields_sorted])
-                        
-                        subfields_dict = parse_metrics(row.get('Top_30_Subfields', ''))
-                        subfields_perc = compute_percentage(subfields_dict, total_pubs) if total_pubs > 0 else {}
-                        similar_subfields = {sf: subfields_perc[sf] for sf in subfields_perc 
-                                             if sf in target_subfields_perc and subfields_perc[sf] > 3 and target_subfields_perc[sf] > 3}
-                        similar_subfields_sorted = sorted(similar_subfields.items(), key=lambda x: x[1], reverse=True)
-                        similar_subfields_str = "; ".join([f"{k} ({v:.1f}%)" for k, v in similar_subfields_sorted])
-                        
-                        topics_dict = parse_metrics(row.get('Top_50_Topics', ''))
-                        topics_perc = compute_percentage(topics_dict, total_pubs) if total_pubs > 0 else {}
-                        similar_topics = {t: topics_perc[t] for t in topics_perc if t in target_topics_perc}
-                        similar_topics_sorted = sorted(similar_topics.items(), key=lambda x: x[1], reverse=True)
-                        similar_topics_str = "; ".join([f"{k} ({int(topics_dict.get(k, 0))}, {v:.1f}%)" for k, v in similar_topics_sorted])
-                        similar_topics_count = len(similar_topics)
-                        
-                        sdgs_dict = parse_metrics(row.get('SDG', ''))
-                        sdgs_perc = compute_percentage(sdgs_dict, total_pubs) if total_pubs > 0 else {}
-                        similar_sdgs = {s: sdgs_perc[s] for s in sdgs_perc
-                                        if s in target_sdgs_perc and sdgs_perc[s] > 3 and target_sdgs_perc[s] > 3}
-                        similar_sdgs_sorted = sorted(similar_sdgs.items(), key=lambda x: x[1], reverse=True)
-                        similar_sdgs_str = "; ".join([f"{k} ({int(sdgs_dict.get(k, 0))}, {v:.1f}%)" for k, v in similar_sdgs_sorted])
-                        
-                        return pd.Series({
-                            'similar_fields': similar_fields_str,
-                            'similar_subfields': similar_subfields_str,
-                            'similar_topics_count': similar_topics_count,
-                            'similar_topics_details': similar_topics_str,
-                            'similar_sdgs': similar_sdgs_str
-                        })
-                    
-                    similar_metrics = merged.apply(compute_similar, axis=1)
-                    final_df = pd.concat([merged, similar_metrics], axis=1)
-    
-                    final_df = final_df[[ 
-                        'ROR_name', 
-                        'Scimago_country_code', 
-                        'Scimago_country_name', 
-                        'appearances', 
-                        'ranking_detail', 
-                        'Total_Publications',
-                        'similar_fields', 
-                        'similar_subfields', 
-                        'similar_topics_count', 
-                        'similar_topics_details',
-                        'similar_sdgs'
-                    ]]
-                    
-                    final_df = final_df.rename(columns={
-                        'ROR_name': 'Institution name',
-                        'Scimago_country_name': 'Country name',
-                        'appearances': 'Similar rankings (count)',
-                        'Total_Publications': 'Total publications',
-                        'similar_fields': 'Similar top fields',
-                        'similar_subfields': 'Similar top subfields',
-                        'similar_topics_count': 'Similar top topics (count)',
-                        'similar_topics_details': 'Similar top topics',
-                        'ranking_detail': 'Similar rankings (details)',
-                        'similar_sdgs': 'Similar top SDGs'
-                    })
-                    
-                    final_df['Total publications'] = final_df['Total publications'].fillna(0).round().astype(int)
-                    
-                    final_df = final_df[
-                        (final_df['Total publications'] >= min_pubs) &
-                        (final_df['Total publications'] <= max_pubs)
-                    ].reset_index(drop=True)
-                    
-                    eur_countries = [
-                        'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BLR', 'BGR', 'CHE', 'CYP', 'CZE',
-                        'DEU', 'DNK', 'ESP', 'EST', 'FIN', 'FRA','GBR', 'GEO', 'GRC', 'HRV', 'HUN', 'IRL',
-                        'ISL', 'ITA', 'KAZ', 'KOS', 'LIE', 'LTU', 'LUX', 'LVA', 'MCO', 'MDA', 'MKD', 'MLT',
-                        'MNE', 'NLD', 'NOR', 'POL', 'PRT', 'ROU', 'SMR', 'SRB', 'SVK', 'SVN', 'SWE',
-                        'TUR', 'UKR', 'VAT'
-                    ]
-                    if europe_only:
-                        final_df = final_df[final_df['Country code'].isin(eur_countries)].reset_index(drop=True)
-                    
-                    # Remove sorting options and 'No.' column
-                    final_df = final_df.reset_index(drop=True)
-                    
-                    display_df = final_df.applymap(lambda x: truncate_text(x, 100) if isinstance(x, str) else x)
-                    return display_df
