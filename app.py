@@ -60,33 +60,29 @@ def truncate_text(x, max_chars=100):
 # ---------------------------
 def color_cells_dynamic(row):
     styles = []
-    try:
-        # Use the reversed "vanimo" colormap
-        cmap = matplotlib.cm.get_cmap("vanimo_r")
-    except Exception:
-        # Fallback to reversed "viridis" if "vanimo" is not available.
-        cmap = matplotlib.cm.get_cmap("viridis_r")
+    # Force the use of the reversed veridis colormap.
+    cmap = matplotlib.cm.get_cmap("veridis_r")
     for col in row.index:
         if col == "Ranking":
             styles.append("")
         else:
             cell = row[col]
             if pd.isna(cell):
-                # Force white background and black font for NaN values
+                # Force white background and black font for NaN values.
                 styles.append("background-color: white; color: black;")
             else:
                 cell_str = str(cell).strip()
                 if cell_str.startswith("—"):
-                    # Treat cells with "-" as worst, ratio = 1
-                    ratio = 1.0
+                    # Treat cells with "-" as ratio 0.
+                    ratio = 0.0
                 else:
                     try:
                         rank_str, total_str = cell_str.split("/")
                         rank_val = float(rank_str.strip())
                         total_val = float(total_str.strip())
-                        ratio = rank_val / total_val if total_val > 0 else 1.0
+                        ratio = rank_val / total_val if total_val > 0 else 0.0
                     except Exception:
-                        ratio = 1.0
+                        ratio = 0.0
                 ratio = max(0, min(1, ratio))
                 hex_color = matplotlib.colors.rgb2hex(cmap(ratio))
                 styles.append(f"background-color: {hex_color}")
@@ -267,8 +263,11 @@ if st.session_state.matches:
                         ax_fields.set_title("Top Fields (>5%)", fontsize=14, weight="semibold")
                         ax_fields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, fields_data):
-                            ax_fields.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
-                                           f"{count}", va='center', fontsize=12)
+                            # Annotate with an offset of 3 points to the right.
+                            ax_fields.annotate(f"{count}",
+                                               xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                                               xytext=(3, 0), textcoords="offset points",
+                                               va='center', fontsize=12)
                         ax_fields.set_yticks(range(len(names_fields)))
                         ax_fields.set_yticklabels(
                             ["\n".join(textwrap.wrap(label, width=30)) for label in names_fields],
@@ -293,14 +292,17 @@ if st.session_state.matches:
                         ax_subfields.set_title("Top Subfields (>3%)", fontsize=14, weight="semibold")
                         ax_subfields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, subfields_data):
-                            ax_subfields.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
-                                              f"{count}", va='center', fontsize=12)
+                            ax_subfields.annotate(f"{count}",
+                                                  xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                                                  xytext=(3, 0), textcoords="offset points",
+                                                  va='center', fontsize=12)
                         ax_subfields.set_yticks(range(len(names_subfields)))
                         ax_subfields.set_yticklabels(
                             ["\n".join(textwrap.wrap(label, width=30)) for label in names_subfields],
-                            fontsize=10
+                            fontsize=9  # Force label size 9 for y-axis on subfields
                         )
-                        ax_subfields.tick_params(axis='both', labelsize=10)
+                        ax_subfields.tick_params(axis='y', labelsize=9)
+                        ax_subfields.tick_params(axis='x', labelsize=10)
                         ax_subfields.margins(x=0.1)
                         st.pyplot(fig_subfields)
                         plt.close(fig_subfields)
@@ -319,8 +321,10 @@ if st.session_state.matches:
                         ax_sdgs.set_title("Top SDGs (>1%)", fontsize=14, weight="semibold")
                         ax_sdgs.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, sdg_data_labeled):
-                            ax_sdgs.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
-                                         f"{count}", va='center', fontsize=12)
+                            ax_sdgs.annotate(f"{count}",
+                                             xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                                             xytext=(3, 0), textcoords="offset points",
+                                             va='center', fontsize=12)
                         ax_sdgs.set_yticks(range(len(names_sdgs)))
                         ax_sdgs.set_yticklabels(
                             ["\n".join(textwrap.wrap(label, width=30)) for label in names_sdgs],
@@ -341,17 +345,13 @@ if st.session_state.matches:
                         topics_data = [(name.strip(), count, round(count/total_pubs_int*100, 2))
                                        for name, count in topics_data]
                         topics_df = pd.DataFrame(topics_data, columns=["Topic", "Count", "Ratio"])
-                        # Rank topics by decreasing publication count
                         topics_df = topics_df.sort_values(by="Count", ascending=False).reset_index(drop=True)
                         topics_df = topics_df.head(50)
                         topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
-                        # Create a custom colormap with three reference points:
-                        # 0%: #FFFFFF, 3%: #d9bc2b, 6%: #695806.
-                        # Any ratio above 6% is clamped.
+                        # Custom colormap with three reference points (0%: #FFFFFF, 3%: #d9bc2b, 6%: #695806)
                         custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
                             "custom_yellow", ["#FFFFFF", "#d9bc2b", "#695806"]
                         )
-                        # We set vmin=0 and vmax=6 so that ratios above 6% receive the same color as 6%
                         styled_topics_df = topics_df.style.format({"Ratio": "{:.2f} %"}).background_gradient(
                             subset=["Ratio"], cmap=custom_cmap, vmin=0, vmax=6
                         ).hide(axis="index")
