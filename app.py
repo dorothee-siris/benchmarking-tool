@@ -275,7 +275,7 @@ def run_benchmark(target_key, rank_range, min_appearances):
         'TUR', 'UKR', 'VAT'
     ]
     if europe_only:
-        final_df = final_df[final_df['Country code'].isin(eur_countries)].reset_index(drop=True)
+        final_df = final_df[final_df['Scimago_country_code'].isin(eur_countries)].reset_index(drop=True)
     
     # Remove sorting options and 'No.' column
     final_df = final_df.reset_index(drop=True)
