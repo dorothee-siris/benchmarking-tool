@@ -391,6 +391,11 @@ if "current_institution" in st.session_state:
                 total_pubs_str = f"{total_pubs_int:,}"
             except Exception:
                 total_pubs_str = "no match"
+            
+            # Now store these values in session_state:
+            st.session_state.target_appearances = total_appearances
+            st.session_state.target_total_publications = total_pubs_str
+
             st.markdown(f"<b>Total publications (articles only) for 2015-2024: <span style='color:red'>{total_pubs_str}</span></b>", unsafe_allow_html=True)
             
             # Additional enrichment and histograms (fields, subfields, SDGs, topics) as before...
@@ -530,11 +535,17 @@ if "current_institution" in st.session_state:
 # UI: Second Section – Benchmarking Parameters
 # ---------------------------
 st.markdown("<h3>Benchmarking Parameters</h3>", unsafe_allow_html=True)
+if "current_institution" in st.session_state and "target_appearances" in st.session_state and "target_total_publications" in st.session_state:
+    target_inst = st.session_state.current_institution[0]
+    st.markdown(
+        f"As a reminder, **{target_inst}** appears in **{st.session_state.target_appearances}** Scimago thematic rankings in 2024 and adds up to **{st.session_state.target_total_publications}** publications (articles only) for the period 2015-2024."
+    )
 st.number_input("Rank Range", value=100, min_value=1, max_value=1000, step=1, key="rank_range")
 st.number_input("Min. Appearances", value=3, min_value=1, max_value=100, step=1, key="min_appearances")
 st.number_input("Min. pubs", value=100, min_value=0, max_value=999999999, step=1, key="min_pubs")
 st.number_input("Max. pubs", value=10000, min_value=0, max_value=999999999, step=1, key="max_pubs")
 st.checkbox("Europe only", value=True, key="europe_only")
+st.checkbox("Exclude target institution country", value=False, key="exclude_target_country")
 
 # ---------------------------
 # Callback for Running Benchmark
@@ -561,6 +572,9 @@ def run_benchmark_callback():
                 'PRT', 'ROU', 'SMR', 'SRB', 'SVK', 'SVN', 'SWE', 'TUR', 'UKR', 'VAT'
             ]
             bench_df = bench_df[bench_df['Country code'].isin(eur_countries)].reset_index(drop=True)
+        if st.session_state.exclude_target_country:
+            target_country_code = st.session_state.current_institution[1]  # second element is the country code
+            bench_df = bench_df[bench_df['Country code'] != target_country_code].reset_index(drop=True)
         bench_df = bench_df.reset_index(drop=True)
         bench_df.index = range(1, len(bench_df)+1)
         # Drop the "Country code" column
