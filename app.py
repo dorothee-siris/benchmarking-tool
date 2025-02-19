@@ -316,7 +316,6 @@ if st.session_state.matches:
                                                xytext=(3, 0), textcoords="offset points",
                                                va='center', fontsize=12)
                         ax_fields.margins(x=0.05)
-                        plt.tight_layout()
                         st.pyplot(fig_fields, use_container_width=True)
                     else:
                         st.info("No fields data >5%.")
@@ -339,7 +338,6 @@ if st.session_state.matches:
                                                   xytext=(3, 0), textcoords="offset points",
                                                   va='center', fontsize=12)
                         ax_subfields.margins(x=0.05)
-                        plt.tight_layout()
                         st.pyplot(fig_subfields, use_container_width=True)
                     else:
                         st.info("No subfields data >3%.")
@@ -362,7 +360,6 @@ if st.session_state.matches:
                                              xytext=(3, 0), textcoords="offset points",
                                              va='center', fontsize=12)
                         ax_sdgs.margins(x=0.05)
-                        plt.tight_layout()
                         st.pyplot(fig_sdgs, use_container_width=True)
                     else:
                         st.info("No SDGs data >1%.")
