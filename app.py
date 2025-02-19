@@ -221,7 +221,7 @@ if st.session_state.matches:
                 # Display Scimago Results Header and Heatmap
                 # ---------------------------
                 st.markdown("<h3>Scimago results</h3>", unsafe_allow_html=True)
-                st.markdown("Thematic rankings with no data started in 2022", unsafe_allow_html=True)
+                st.markdown("Thematic rankings with no data started in 2022.", unsafe_allow_html=True)
                 styled_df = result_df.style.apply(color_cells_dynamic, axis=1).hide(axis="index")
                 st.markdown(styled_df.to_html(), unsafe_allow_html=True)
                 
@@ -303,20 +303,20 @@ if st.session_state.matches:
                     # ---------------------------
                     if fields_data:
                         st.subheader("Top Fields (>5%)")
-                        fig_fields, ax_fields = plt.subplots(figsize=(15, 8))
+                        fig_fields, ax_fields = plt.subplots(figsize=(12, 6))
                         names_fields = [x[0] for x in fields_data]
                         percentages_fields = [x[2] for x in fields_data]
-                        bars = ax_fields.barh(names_fields, percentages_fields, color='skyblue')
+                        bars = ax_fields.barh(names_fields, percentages_fields, color='#16a4d8')
                         ax_fields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
                         ax_fields.xaxis.set_major_formatter(formatter)
-                        ax_fields.set_title("Top Fields (>5%)", fontsize=14, weight="semibold")
                         ax_fields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, fields_data):
                             ax_fields.annotate(f"{count:,}",
                                                xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                xytext=(3, 0), textcoords="offset points",
-                                               va='center', fontsize=10)
-                        ax_fields.margins(x=0.15)
+                                               va='center', fontsize=12)
+                        ax_fields.margins(x=0.05)
+                        ax_fields.tick_params(axis='both',fontsize=12)
                         plt.tight_layout()
                         st.pyplot(fig_fields, use_container_width=True)
                     else:
@@ -327,20 +327,20 @@ if st.session_state.matches:
                     # ---------------------------
                     if subfields_data:
                         st.subheader("Top Subfields (>3%)")
-                        fig_subfields, ax_subfields = plt.subplots(figsize=(15, 8))
+                        fig_subfields, ax_subfields = plt.subplots(figsize=(12, 8))
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
-                        bars = ax_subfields.barh(names_subfields, percentages_subfields, color='lightpink')
+                        bars = ax_subfields.barh(names_subfields, percentages_subfields, color='#60dbe8')
                         ax_subfields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
                         ax_subfields.xaxis.set_major_formatter(formatter)
-                        ax_subfields.set_title("Top Subfields (>3%)", fontsize=14, weight="semibold")
                         ax_subfields.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, subfields_data):
                             ax_subfields.annotate(f"{count:,}",
                                                   xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                   xytext=(3, 0), textcoords="offset points",
-                                                  va='center', fontsize=10)
-                        ax_subfields.margins(x=0.15)
+                                                  va='center', fontsize=12)
+                        ax_subfields.margins(x=0.05)
+                        ax_subfields.tick_params(axis='both',fontsize=12)
                         plt.tight_layout()
                         st.pyplot(fig_subfields, use_container_width=True)
                     else:
@@ -351,20 +351,20 @@ if st.session_state.matches:
                     # ---------------------------
                     if sdg_data_labeled:
                         st.subheader("Top SDGs (>1%)")
-                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(15, 8))
+                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(12, 6))
                         names_sdgs = [x[0] for x in sdg_data_labeled]
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
-                        bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#E6CCFF')
+                        bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#9b5fe0')
                         ax_sdgs.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
                         ax_sdgs.xaxis.set_major_formatter(formatter)
-                        ax_sdgs.set_title("Top SDGs (>1%)", fontsize=14, weight="semibold")
                         ax_sdgs.invert_yaxis()
                         for bar, (_, count, _) in zip(bars, sdg_data_labeled):
                             ax_sdgs.annotate(f"{count:,}",
                                              xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                              xytext=(3, 0), textcoords="offset points",
-                                             va='center', fontsize=10)
-                        ax_sdgs.margins(x=0.15)
+                                             va='center', fontsize=12)
+                        ax_sdgs.margins(x=0.05)
+                        ax_sdgs.tick_params(axis='both',fontsize=12)
                         plt.tight_layout()
                         st.pyplot(fig_sdgs, use_container_width=True)
                     else:
