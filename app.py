@@ -381,7 +381,9 @@ if "current_institution" in st.session_state:
                 ", ".join(summary_parts) + ".",
                 unsafe_allow_html=True
             )
-            
+            # Store the number of appearances in 2024 rankings:
+            target_appearances_2024 = summary_counts[2024]
+
             st.markdown("<h3>OpenAlex results</h3>", unsafe_allow_html=True)
             try:
                 total_pubs_int = int(df_enriched[
@@ -393,7 +395,7 @@ if "current_institution" in st.session_state:
                 total_pubs_str = "no match"
             
             # Now store these values in session_state:
-            st.session_state.target_appearances = total_appearances
+            st.session_state.target_appearances_2024 = target_appearances_2024
             st.session_state.target_total_publications = total_pubs_str
 
             st.markdown(f"<b>Total publications (articles only) for 2015-2024: <span style='color:red'>{total_pubs_str}</span></b>", unsafe_allow_html=True)
@@ -535,10 +537,10 @@ if "current_institution" in st.session_state:
 # UI: Second Section – Benchmarking Parameters
 # ---------------------------
 st.markdown("<h3>Benchmarking Parameters</h3>", unsafe_allow_html=True)
-if "current_institution" in st.session_state and "target_appearances" in st.session_state and "target_total_publications" in st.session_state:
+if "current_institution" in st.session_state and "target_appearances_2024" in st.session_state and "target_total_publications" in st.session_state:
     target_inst = st.session_state.current_institution[0]
     st.markdown(
-        f"As a reminder, **{target_inst}** appears in **{st.session_state.target_appearances}** Scimago thematic rankings in 2024 and adds up to **{st.session_state.target_total_publications}** publications (articles only) for the period 2015-2024."
+        f"As a reminder, **{target_inst}** appears in <span style='color:red'>{st.session_state.target_appearances_2024}</span> Scimago thematic rankings in 2024 and adds up to <span style='color:red'>{st.session_state.target_total_publications}</span> publications (articles only) for the period 2015-2024."
     )
 st.number_input("Rank Range", value=100, min_value=1, max_value=1000, step=1, key="rank_range")
 st.number_input("Min. Appearances", value=3, min_value=1, max_value=100, step=1, key="min_appearances")
@@ -605,3 +607,40 @@ st.button("Run Benchmark", on_click=run_benchmark_callback)
 if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not None:
     st.markdown("<h3>Benchmarking Results</h3>", unsafe_allow_html=True)
     st.dataframe(st.session_state.benchmark_df, use_container_width=True)
+
+# --- PDF Generation Option ---
+import pdfkit  # Ensure pdfkit is installed and wkhtmltopdf is available
+
+# Convert the benchmark DataFrame to an HTML string
+html_str = st.session_state.benchmark_df.to_html(index=False)
+
+# Define custom CSS to style the final dataframe
+css = """
+<style>
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+table, th, td {
+    border: 1px solid #ddd;
+}
+th, td {
+    padding: 8px;
+    text-align: left;
+}
+th {
+    background-color: #f2f2f2;
+}
+</style>
+"""
+# Combine the CSS with the HTML
+html_full = css + html_str
+
+# Generate PDF bytes from the combined HTML (wkhtmltopdf must be installed)
+pdf_bytes = pdfkit.from_string(html_full, False)
+
+# Construct the default file name using the target institution name from session state
+default_filename = f"benchmark_{st.session_state.current_institution[0]}.pdf"
+
+# Create a download button for the PDF
+st.download_button("Generate PDF", data=pdf_bytes, file_name=default_filename, mime="application/pdf")
