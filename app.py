@@ -172,6 +172,9 @@ if "matches" in st.session_state and st.session_state.matches:
             if df_inst.empty:
                 st.error(f"No ranking data found for {institution_name} ({country_code}).")
             else:
+                # Store the selected institution in session state
+                st.session_state.current_institution = selected_tuple
+
                 # Process ranking data
                 totals = df_master.groupby(["name of the ranking", "year"]).size().reset_index(name="total")
                 total_dict = {(row["name of the ranking"], row["year"]): row["total"] for _, row in totals.iterrows()}
@@ -387,7 +390,7 @@ if "matches" in st.session_state and st.session_state.matches:
                 europe_only = st.checkbox("Europe only", value=True)
 
                 if st.button("Run Benchmark"):
-                    benchmark_df = run_benchmark(selected_tuple, rank_range, min_appearances)
+                    benchmark_df = run_benchmark(st.session_state.current_institution, rank_range, min_appearances)
                     if benchmark_df is not None:
                         # Remove unnecessary columns
                         if 'Country code' in benchmark_df.columns:
