@@ -326,7 +326,7 @@ if st.session_state.matches:
                     # ---------------------------
                     if subfields_data:
                         st.subheader("Top Subfields (>3%)")
-                        fig_subfields, ax_subfields = plt.subplots(figsize=(12, 8))
+                        fig_subfields, ax_subfields = plt.subplots(figsize=(10, 8))
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
                         bars = ax_subfields.barh(names_subfields, percentages_subfields, color='#60dbe8')
@@ -349,7 +349,7 @@ if st.session_state.matches:
                     # ---------------------------
                     if sdg_data_labeled:
                         st.subheader("Top SDGs (>1%)")
-                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(12, 6))
+                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(10, 6))
                         names_sdgs = [x[0] for x in sdg_data_labeled]
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
                         bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#9b5fe0')
