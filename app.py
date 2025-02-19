@@ -93,12 +93,12 @@ def color_cells_dynamic(row):
     styles = []
     for col in row.index:
         if col == "Ranking":
-            styles.append("")
+            styles.append("")  # Leave Ranking column unmodified.
         else:
             cell = row[col]
             if pd.isna(cell) or cell == "no data":
-                # Replace missing data with "no data" and force white background, black font.
-                styles.append("background-color: white; color: black;")
+                # Replace missing data with "no data" and force white background, black font, and smaller font.
+                styles.append("background-color: white; color: black; font-size: 10px;")
             else:
                 cell_str = str(cell).strip()
                 if cell_str.startswith("—"):
@@ -208,8 +208,7 @@ if st.session_state.matches:
                 # Replace NaN with "no data"
                 result_df = result_df.fillna("no data")
                 
-                # Force fixed width on year columns (13 characters) and shorten Ranking names (15 characters)
-                result_df["Ranking"] = result_df["Ranking"].apply(lambda x: str(x)[:15])
+                # Trim only the result columns (2021 to 2024) to a fixed width of 13 characters.
                 for col in years:
                     result_df[col] = result_df[col].apply(lambda x: fix_width(x, 13))
                 
@@ -220,6 +219,14 @@ if st.session_state.matches:
                 st.markdown("Thematic rankings with no data started in 2022", unsafe_allow_html=True)
                 styled_df = result_df.style.apply(color_cells_dynamic, axis=1).hide(axis="index")
                 st.markdown(styled_df.to_html(), unsafe_allow_html=True)
+                
+                total_appearances = sum(summary_counts.values())
+                summary_parts = [f"{summary_counts[year]} in {year}" for year in years]
+                st.markdown(
+                    f"{institution_name} ({country_code}) appears {total_appearances} times in total: " +
+                    ", ".join(summary_parts) + ".",
+                    unsafe_allow_html=True
+                )
                 
                 # ---------------------------
                 # Display OpenAlex Results Header and Total Publications
@@ -293,7 +300,7 @@ if st.session_state.matches:
                         fig_fields, ax_fields = plt.subplots(figsize=(8, 8))
                         names_fields = [x[0] for x in fields_data]
                         percentages_fields = [x[2] for x in fields_data]
-                        bars = ax_fields.barh(names_fields, percentages_fields, color='#16a4d8')
+                        bars = ax_fields.barh(names_fields, percentages_fields, color='skyblue')
                         ax_fields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
                         ax_fields.xaxis.set_major_formatter(formatter)
                         ax_fields.set_title("Top Fields (>5%)", fontsize=14, weight="semibold")
@@ -322,7 +329,7 @@ if st.session_state.matches:
                         fig_subfields, ax_subfields = plt.subplots(figsize=(8, 8))
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
-                        bars = ax_subfields.barh(names_subfields, percentages_subfields, color='#60dbe8')
+                        bars = ax_subfields.barh(names_subfields, percentages_subfields, color='lightpink')
                         ax_subfields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
                         ax_subfields.xaxis.set_major_formatter(formatter)
                         ax_subfields.set_title("Top Subfields (>3%)", fontsize=14, weight="semibold")
@@ -352,7 +359,7 @@ if st.session_state.matches:
                         fig_sdgs, ax_sdgs = plt.subplots(figsize=(8, 8))
                         names_sdgs = [x[0] for x in sdg_data_labeled]
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
-                        bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#9b5fe0')
+                        bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#E6CCFF')
                         ax_sdgs.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
                         ax_sdgs.xaxis.set_major_formatter(formatter)
                         ax_sdgs.set_title("Top SDGs (>1%)", fontsize=14, weight="semibold")
