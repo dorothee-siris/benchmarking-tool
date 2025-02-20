@@ -976,11 +976,19 @@ if "current_institution" in st.session_state:
                 }
             )
 
-            # Use the raw dataframe for CSV export
-            csv = st.session_state.benchmark_df_raw.to_csv(index=False, encoding='utf-8-sig')
-            st.download_button(
-                label="Download benchmark results as CSV",
-                data=csv,
-                file_name=f"benchmark_results_{st.session_state.current_institution[0]}.csv",
-                mime="text/csv",
-            )
+        # Prepare CSV download with proper encoding
+        inst_name = st.session_state.current_institution[0]
+        safe_inst_name = re.sub(r'[^A-Za-z0-9_\-]+', '_', inst_name.strip())
+        
+        # Convert to CSV with utf-8-sig encoding
+        csv_data = st.session_state.benchmark_df_raw.to_csv(index=False, encoding='utf-8-sig')
+        
+        # Convert to bytes
+        csv_bytes = csv_data.encode('utf-8-sig')
+        
+        st.download_button(
+            label="Download benchmark results as CSV",
+            data=csv_bytes,
+            file_name=f"benchmark_results_{safe_inst_name}.csv",
+            mime="text/csv",
+        )
