@@ -15,6 +15,22 @@ st.set_page_config(
     layout="wide"
 )
 
+# Add this at the top of your script, after the st.set_page_config
+st.markdown("""
+    <style>
+        div.stButton > button:first-child {
+            background-color: #ef476f;
+            color: white;
+            font-weight: bold;
+        }
+        div.stButton > button:first-child:hover {
+            background-color: #d03d61;  /* Slightly darker shade for hover effect */
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # ---------------------------
 # Caching Data Loading
 # ---------------------------
