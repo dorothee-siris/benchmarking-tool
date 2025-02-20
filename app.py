@@ -159,20 +159,23 @@ def color_cells_dynamic(row):
             styles.append("")
         else:
             cell = row[col]
-            cell_str = str(cell).strip()
-            if cell_str.startswith("—"):
-                ratio = 0.999
+            if pd.isna(cell) or str(cell).strip().lower() == "no data":
+                styles.append("background-color: #0E1117; color: white; font-size: 14px;")
             else:
-                try:
-                    rank_str, total_str = cell_str.split("/")
-                    rank_val = float(rank_str.strip())
-                    total_val = float(total_str.strip())
-                    ratio = rank_val / total_val if total_val > 0 else 0.0
-                except Exception:
-                    ratio = 0.0
-            ratio = max(0, min(1, ratio))
-            hex_color = get_heatmap_color(1 - ratio)
-            styles.append(f"background-color: {hex_color}; color: black;")
+                cell_str = str(cell).strip()
+                if cell_str.startswith("—"):
+                    ratio = 0.999
+                else:
+                    try:
+                        rank_str, total_str = cell_str.split("/")
+                        rank_val = float(rank_str.strip())
+                        total_val = float(total_str.strip())
+                        ratio = rank_val / total_val if total_val > 0 else 0.0
+                    except Exception:
+                        ratio = 0.0
+                ratio = max(0, min(1, ratio))
+                hex_color = get_heatmap_color(1 - ratio)
+                styles.append(f"background-color: {hex_color}; color: black;")
     return styles
 
 
