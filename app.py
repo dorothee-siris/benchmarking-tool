@@ -314,8 +314,9 @@ st.header("On your mark... bench!")
 
 col1, col2 = st.columns([1, 3])
 with col1:
-    search_str = st.text_input(placeholder="Enter partial institution name", key="search_str")
+    search_str = st.text_input("", placeholder="Enter partial institution name", key="search_str")
 with col2:
+    st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)  # Add spacing
     find_button = st.button("Find Matches")
 
 if find_button:
