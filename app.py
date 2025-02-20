@@ -35,7 +35,7 @@ st.markdown("""
 st.markdown("""
     <style>
         .small-subheader {
-            font-size: 1.3rem;
+            font-size: 1.5rem;
             font-weight: 600;
             color: white;
             margin-bottom: 0.5rem;
@@ -347,7 +347,15 @@ def run_benchmark(target_key, rank_range, min_appearances):
 # UI: First Section – Display Institution Results
 # ---------------------------
 st.title("Bench:red[Up]")
-st.header("On your mark... bench!")
+st.subheader("On your mark... bench!")
+
+# Multi-line disclaimer with warning icon
+st.markdown("""
+    ⚠️ **Disclaimer:**  
+    The data in BenchUp are partial and should be used as a starting point, not a definitive analysis.  
+    While institutions may share similarities based on these indicators, meaningful comparisons require contextual and qualitative assessment.  
+    BenchUp helps identify potential international benchmarks but does not provide absolute answers.
+""")
 
 col1, col2 = st.columns([1, 3])
 with col1:
