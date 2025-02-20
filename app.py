@@ -977,7 +977,7 @@ if "current_institution" in st.session_state:
             )
 
             # Use the raw dataframe for CSV export
-            csv = st.session_state.benchmark_df_raw.to_csv(index=False)
+            csv = st.session_state.benchmark_df_raw.to_csv(index=False, encoding='utf-8-sig')
             st.download_button(
                 label="Download benchmark results as CSV",
                 data=csv,
