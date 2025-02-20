@@ -402,7 +402,8 @@ def run_benchmark(target_key, rank_range, min_appearances):
         subset=['Shared top topics (count)']
     )
 
-    return styled_df  # Return the styled dataframe instead of final_df
+    # Return both dataframes
+    return {'styled': styled_df, 'raw': final_df}
 
 # ---------------------------
 # UI: First Section – Display Institution Results
@@ -862,12 +863,18 @@ if "current_institution" in st.session_state:
             target_key = st.session_state.current_institution
             rank_range = st.session_state.rank_range
             min_appearances = st.session_state.min_appearances
-            bench_df = run_benchmark(target_key, rank_range, min_appearances)
-            if bench_df is not None:
+            result = run_benchmark(target_key, rank_range, min_appearances)
+            
+            if result is not None:
+                bench_df = result['raw']  # Get the raw dataframe
+                styled_df = result['styled']  # Get the styled dataframe
+                
+                # Apply all filters to the raw dataframe
                 bench_df = bench_df[
                     (bench_df['Total publications'] >= st.session_state.min_pubs) &
                     (bench_df['Total publications'] <= st.session_state.max_pubs)
                 ].reset_index(drop=True)
+                
                 if st.session_state.europe_only:
                     eur_countries = [
                         'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BLR', 'BGR', 'CHE',
@@ -877,14 +884,18 @@ if "current_institution" in st.session_state:
                         'PRT', 'ROU', 'SMR', 'SRB', 'SVK', 'SVN', 'SWE', 'TUR', 'UKR', 'VAT'
                     ]
                     bench_df = bench_df[bench_df['Country code'].isin(eur_countries)].reset_index(drop=True)
+                
                 if st.session_state.exclude_target_country:
-                    target_country_code = st.session_state.current_institution[1]  # second element is the country code
+                    target_country_code = st.session_state.current_institution[1]
                     bench_df = bench_df[bench_df['Country code'] != target_country_code].reset_index(drop=True)
+                
                 bench_df = bench_df.reset_index(drop=True)
                 bench_df.index = range(1, len(bench_df)+1)
+                
                 # Drop the "Country code" column
                 bench_df = bench_df.drop(columns=['Country code'])
-                # Reorder and rename columns as required:
+                
+                # Reorder columns
                 final_order = [
                     'Institution',
                     'Country',
@@ -898,9 +909,19 @@ if "current_institution" in st.session_state:
                     'Shared rankings (detail)'
                 ]
                 bench_df = bench_df[final_order]
-                st.session_state.benchmark_df = bench_df
+                
+                # Create new styled version of the filtered dataframe
+                styled_df = bench_df.style.applymap(
+                    color_topics_count,
+                    subset=['Shared top topics (count)']
+                )
+                
+                # Store both versions in session state
+                st.session_state.benchmark_df = styled_df  # For display
+                st.session_state.benchmark_df_raw = bench_df  # For CSV export
             else:
                 st.session_state.benchmark_df = None
+                st.session_state.benchmark_df_raw = None
 
         st.button("Run Benchmark", on_click=run_benchmark_callback)
 
@@ -910,7 +931,7 @@ if "current_institution" in st.session_state:
         if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not None:
             st.markdown("<h3>Benchmarking Results</h3>", unsafe_allow_html=True)
             st.dataframe(
-                st.session_state.benchmark_df,  # This is now the styled dataframe
+                st.session_state.benchmark_df,
                 use_container_width=True,
                 column_config={
                     "Institution": st.column_config.Column(
@@ -955,8 +976,8 @@ if "current_institution" in st.session_state:
                 }
             )
 
-            # Add download button - use the underlying data for CSV
-            csv = st.session_state.benchmark_df.data.to_csv(index=False)  # Use .data to get the raw dataframe
+            # Use the raw dataframe for CSV export
+            csv = st.session_state.benchmark_df_raw.to_csv(index=False)
             st.download_button(
                 label="Download benchmark results as CSV",
                 data=csv,
