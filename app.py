@@ -261,7 +261,7 @@ def run_benchmark(target_key, rank_range, min_appearances):
     final_df = final_df[[ 
         'ROR_name', 
         'Scimago_country_code', 
-        'Scimago_country_name', 
+        'ROR_country',
         'appearances', 
         'ranking_detail', 
         'Total_Publications',
@@ -273,17 +273,17 @@ def run_benchmark(target_key, rank_range, min_appearances):
     ]]
     
     final_df = final_df.rename(columns={
-        'ROR_name': 'Institution name',
+        'ROR_name': 'Institution',
         'Scimago_country_code': 'Country code',
-        'Scimago_country_name': 'Country name',
-        'appearances': 'Appearances in rankings',
-        'ranking_detail': 'Ranking details',
+        'ROR_country': 'Country',
+        'appearances': 'Similar rankings (count)',
+        'ranking_detail': 'Similar rankings (detail)',
         'Total_Publications': 'Total publications',
-        'similar_fields': 'Similar top fields',
-        'similar_subfields': 'Similar top subfields',
+        'similar_fields': 'Similar top fields (>5M)',
+        'similar_subfields': 'Similar top subfields (>3%)',
         'similar_topics_count': 'Similar top topics (count)',
         'similar_topics_details': 'Similar top topics',
-        'similar_sdgs': 'Similar top SDGs'
+        'similar_sdgs': 'Similar top SDGs (>1%)'
     })
     
     final_df['Total publications'] = final_df['Total publications'].fillna(0).round().astype(int)
@@ -551,10 +551,10 @@ if "current_institution" in st.session_state and "target_appearances" in st.sess
         ''',
         unsafe_allow_html=True
     )
-st.number_input("Rank Range", value=100, min_value=1, max_value=1000, step=1, key="rank_range")
-st.number_input("Min. Appearances", value=3, min_value=1, max_value=100, step=1, key="min_appearances")
-st.number_input("Min. pubs", value=100, min_value=0, max_value=999999999, step=1, key="min_pubs")
-st.number_input("Max. pubs", value=10000, min_value=0, max_value=999999999, step=1, key="max_pubs")
+st.number_input("Ranking distance (±)", value=100, min_value=1, max_value=1000, step=1, key="rank_range",help="Maximum distance allowed above or below the benchmarked institution's rank in each ranking")
+st.number_input("Min. shared rankings", value=3, min_value=1, max_value=100, step=1, key="min_appearances",help="Minimum number of rankings that must be shared with the benchmarked institution")
+st.number_input("Min. pubs", value=100, min_value=0, max_value=999999999, step=1, key="min_pubs",help="Minimum amount of publications (articles only) produced over the past 10 years")
+st.number_input("Max. pubs over the past 10 years", value=10000, min_value=0, max_value=999999999, step=1, key="max_pubs",help="Maximum amount of publications (articles only) produced over the past 10 years")
 st.checkbox("Europe only", value=True, key="europe_only")
 st.checkbox("Exclude target institution country", value=False, key="exclude_target_country")
 
