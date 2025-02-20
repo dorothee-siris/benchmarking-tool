@@ -316,7 +316,7 @@ col1, col2 = st.columns([1, 3])
 with col1:
     search_str = st.text_input("", placeholder="Enter partial institution name", key="search_str")
 with col2:
-    st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)  # Add spacing
+    st.markdown('<div style="margin-top: 27px;"></div>', unsafe_allow_html=True)  # Add spacing
     find_button = st.button("Find Matches")
 
 if find_button:
@@ -551,178 +551,178 @@ if "current_institution" in st.session_state:
             else:
                 st.error("No enriched record found for the selected institution.")
 
-# ---------------------------
-# UI: Second Section – Benchmarking Parameters
-# ---------------------------
-st.markdown("<h3>Benchmarking Parameters</h3>", unsafe_allow_html=True)
-if "current_institution" in st.session_state and "target_appearances" in st.session_state and "target_total_publications" in st.session_state:
-    target_inst = st.session_state.current_institution[0]
-    st.markdown(
-        f'''
-        <div style="font-size: 1rem; margin: 0.5rem 0;">
-            As a reminder, <b>{target_inst}</b> appears in 
-            <b style="color: #ef476f">{st.session_state.target_appearances}</b> Scimago thematic rankings in 2024 
-            and adds up to <b style="color: #ef476f">{st.session_state.target_total_publications}</b> publications (articles only) 
-            for the period 2015-2024.
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
-    # Create four columns for the numeric inputs
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.number_input(
-            "Ranking distance (±)", 
-            value=100, 
-            min_value=1, 
-            max_value=1000, 
-            step=1, 
-            key="rank_range",
-            help="Maximum distance allowed above or below the benchmarked institution's rank in each ranking"
-        )
-    
-    with col2:
-        st.number_input(
-            "Min. shared rankings",
-            value=3,
-            min_value=1,
-            max_value=100,
-            step=1,
-            key="min_appearances",
-            help="Minimum number of rankings that must be shared with the benchmarked institution"
-        )
-    
-    with col3:
-        st.number_input(
-            "Min. pubs",
-            value=100,
-            min_value=0,
-            max_value=999999999,
-            step=1,
-            key="min_pubs",
-            help="Minimum amount of publications (articles only) produced over the past 10 years"
-        )
-    
-    with col4:
-        st.number_input(
-            "Max. pubs",
-            value=10000,
-            min_value=0,
-            max_value=999999999,
-            step=1,
-            key="max_pubs",
-            help="Maximum amount of publications (articles only) produced over the past 10 years"
-        )
-    
-    # Create two columns for the checkboxes
-    col_check1, col_check2 = st.columns(2)
-    
-    with col_check1:
-        st.checkbox("Europe only", value=True, key="europe_only")
-    
-    with col_check2:
-        st.checkbox("Exclude target institution country", value=False, key="exclude_target_country")
-
-# ---------------------------
-# Callback for Running Benchmark
-# ---------------------------
-def run_benchmark_callback():
-    if "current_institution" not in st.session_state:
-        st.error("Please display institution results first.")
-        return
-    target_key = st.session_state.current_institution
-    rank_range = st.session_state.rank_range
-    min_appearances = st.session_state.min_appearances
-    bench_df = run_benchmark(target_key, rank_range, min_appearances)
-    if bench_df is not None:
-        bench_df = bench_df[
-            (bench_df['Total publications'] >= st.session_state.min_pubs) &
-            (bench_df['Total publications'] <= st.session_state.max_pubs)
-        ].reset_index(drop=True)
-        if st.session_state.europe_only:
-            eur_countries = [
-                'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BLR', 'BGR', 'CHE',
-                'CYP', 'CZE', 'DEU', 'DNK', 'ESP', 'EST', 'FIN', 'FRA','GBR', 'GEO',
-                'GRC', 'HRV', 'HUN', 'IRL', 'ISL', 'ITA', 'KAZ', 'KOS', 'LIE', 'LTU',
-                'LUX', 'LVA', 'MCO', 'MDA', 'MKD', 'MLT', 'MNE', 'NLD', 'NOR', 'POL',
-                'PRT', 'ROU', 'SMR', 'SRB', 'SVK', 'SVN', 'SWE', 'TUR', 'UKR', 'VAT'
-            ]
-            bench_df = bench_df[bench_df['Country code'].isin(eur_countries)].reset_index(drop=True)
-        if st.session_state.exclude_target_country:
-            target_country_code = st.session_state.current_institution[1]  # second element is the country code
-            bench_df = bench_df[bench_df['Country code'] != target_country_code].reset_index(drop=True)
-        bench_df = bench_df.reset_index(drop=True)
-        bench_df.index = range(1, len(bench_df)+1)
-        # Drop the "Country code" column
-        bench_df = bench_df.drop(columns=['Country code'])
-        # Reorder and rename columns as required:
-        final_order = [
-            'Institution',
-            'Country',
-            'Shared rankings (count)',
-            'Total publications',
-            'Shared top topics (count)',
-            'Shared top topics',
-            'Shared top subfields',
-            'Shared top fields',
-            'Shared top SDGs',
-            'Shared rankings (detail)'
-        ]
-        bench_df = bench_df[final_order]
-        st.session_state.benchmark_df = bench_df
-    else:
-        st.session_state.benchmark_df = None
-
-st.button("Run Benchmark", on_click=run_benchmark_callback)
-
-# ---------------------------
-# Display Benchmark Results if available
-# ---------------------------
-if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not None:
-    st.markdown("<h3>Benchmarking Results</h3>", unsafe_allow_html=True)
-    st.dataframe(
-        st.session_state.benchmark_df,
-        use_container_width=True,
-        column_config={
-            "Institution": st.column_config.Column(
-                width="medium"
-            ),
-            "Country": st.column_config.Column(
-                width="small"
-            ),
-            "Shared rankings (count)": st.column_config.Column(
-                width="small",
-                help="Number of Scimago thematic rankings shared with the benchmarked institution in 2024"
-            ),
-            "Shared rankings (detail)": st.column_config.Column(
-                width="small",
-                help="List of shared Scimago thematic rankings with rank position in each"
-            ),
-            "Total publications": st.column_config.Column(
-                width="small",
-                help="Total number of articles published between 2015-2024, as referenced in OpenAlex"
-            ),
-            "Shared top fields": st.column_config.Column(
-                width="small",
-                help="List of research 'fields' (OpenAlex low granularity level) that represent more than 5% of publications for both institutions"
-            ),
-            "Shared top subfields": st.column_config.Column(
-                width="small",
-                help="List of research 'subfields'(OpenAlex medium granularity level) that represent more than 3% of publications for both institutions"
-            ),
-            "Shared top topics (count)": st.column_config.Column(
-                width="small",
-                help="Number of research topics shared between the top 50 topics of both institutions"
-            ),
-            "Shared top topics": st.column_config.Column(
-                width="medium",
-                help="List of shared OpenAlex 'topics' (high granularity level) from the top 50 most frequent topics of both institutions"
-            ),
-            "Shared top SDGs": st.column_config.Column(
-                width="small",
-                help="SDG-tagged publications that represent more than 1% of the total publications for both institutions"
+        # ---------------------------
+        # UI: Second Section – Benchmarking Parameters
+        # ---------------------------
+        st.markdown("<h3>Benchmarking Parameters</h3>", unsafe_allow_html=True)
+        if "current_institution" in st.session_state and "target_appearances" in st.session_state and "target_total_publications" in st.session_state:
+            target_inst = st.session_state.current_institution[0]
+            st.markdown(
+                f'''
+                <div style="font-size: 1rem; margin: 0.5rem 0;">
+                    As a reminder, <b>{target_inst}</b> appears in 
+                    <b style="color: #ef476f">{st.session_state.target_appearances}</b> Scimago thematic rankings in 2024 
+                    and adds up to <b style="color: #ef476f">{st.session_state.target_total_publications}</b> publications (articles only) 
+                    for the period 2015-2024.
+                </div>
+                ''',
+                unsafe_allow_html=True
             )
-        }
-    )
+
+            # Create four columns for the numeric inputs
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.number_input(
+                    "Ranking distance (±)", 
+                    value=100, 
+                    min_value=1, 
+                    max_value=1000, 
+                    step=1, 
+                    key="rank_range",
+                    help="Maximum distance allowed above or below the benchmarked institution's rank in each ranking"
+                )
+            
+            with col2:
+                st.number_input(
+                    "Min. shared rankings",
+                    value=3,
+                    min_value=1,
+                    max_value=100,
+                    step=1,
+                    key="min_appearances",
+                    help="Minimum number of rankings that must be shared with the benchmarked institution"
+                )
+            
+            with col3:
+                st.number_input(
+                    "Min. pubs",
+                    value=100,
+                    min_value=0,
+                    max_value=999999999,
+                    step=1,
+                    key="min_pubs",
+                    help="Minimum amount of publications (articles only) produced over the past 10 years"
+                )
+            
+            with col4:
+                st.number_input(
+                    "Max. pubs",
+                    value=10000,
+                    min_value=0,
+                    max_value=999999999,
+                    step=1,
+                    key="max_pubs",
+                    help="Maximum amount of publications (articles only) produced over the past 10 years"
+                )
+            
+            # Create two columns for the checkboxes
+            col_check1, col_check2 = st.columns(2)
+            
+            with col_check1:
+                st.checkbox("Europe only", value=True, key="europe_only")
+            
+            with col_check2:
+                st.checkbox("Exclude target institution country", value=False, key="exclude_target_country")
+
+        # ---------------------------
+        # Callback for Running Benchmark
+        # ---------------------------
+        def run_benchmark_callback():
+            if "current_institution" not in st.session_state:
+                st.error("Please display institution results first.")
+                return
+            target_key = st.session_state.current_institution
+            rank_range = st.session_state.rank_range
+            min_appearances = st.session_state.min_appearances
+            bench_df = run_benchmark(target_key, rank_range, min_appearances)
+            if bench_df is not None:
+                bench_df = bench_df[
+                    (bench_df['Total publications'] >= st.session_state.min_pubs) &
+                    (bench_df['Total publications'] <= st.session_state.max_pubs)
+                ].reset_index(drop=True)
+                if st.session_state.europe_only:
+                    eur_countries = [
+                        'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BLR', 'BGR', 'CHE',
+                        'CYP', 'CZE', 'DEU', 'DNK', 'ESP', 'EST', 'FIN', 'FRA','GBR', 'GEO',
+                        'GRC', 'HRV', 'HUN', 'IRL', 'ISL', 'ITA', 'KAZ', 'KOS', 'LIE', 'LTU',
+                        'LUX', 'LVA', 'MCO', 'MDA', 'MKD', 'MLT', 'MNE', 'NLD', 'NOR', 'POL',
+                        'PRT', 'ROU', 'SMR', 'SRB', 'SVK', 'SVN', 'SWE', 'TUR', 'UKR', 'VAT'
+                    ]
+                    bench_df = bench_df[bench_df['Country code'].isin(eur_countries)].reset_index(drop=True)
+                if st.session_state.exclude_target_country:
+                    target_country_code = st.session_state.current_institution[1]  # second element is the country code
+                    bench_df = bench_df[bench_df['Country code'] != target_country_code].reset_index(drop=True)
+                bench_df = bench_df.reset_index(drop=True)
+                bench_df.index = range(1, len(bench_df)+1)
+                # Drop the "Country code" column
+                bench_df = bench_df.drop(columns=['Country code'])
+                # Reorder and rename columns as required:
+                final_order = [
+                    'Institution',
+                    'Country',
+                    'Shared rankings (count)',
+                    'Total publications',
+                    'Shared top topics (count)',
+                    'Shared top topics',
+                    'Shared top subfields',
+                    'Shared top fields',
+                    'Shared top SDGs',
+                    'Shared rankings (detail)'
+                ]
+                bench_df = bench_df[final_order]
+                st.session_state.benchmark_df = bench_df
+            else:
+                st.session_state.benchmark_df = None
+
+        st.button("Run Benchmark", on_click=run_benchmark_callback)
+
+        # ---------------------------
+        # Display Benchmark Results if available
+        # ---------------------------
+        if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not None:
+            st.markdown("<h3>Benchmarking Results</h3>", unsafe_allow_html=True)
+            st.dataframe(
+                st.session_state.benchmark_df,
+                use_container_width=True,
+                column_config={
+                    "Institution": st.column_config.Column(
+                        width="medium"
+                    ),
+                    "Country": st.column_config.Column(
+                        width="small"
+                    ),
+                    "Shared rankings (count)": st.column_config.Column(
+                        width="small",
+                        help="Number of Scimago thematic rankings shared with the benchmarked institution in 2024"
+                    ),
+                    "Shared rankings (detail)": st.column_config.Column(
+                        width="small",
+                        help="List of shared Scimago thematic rankings with rank position in each"
+                    ),
+                    "Total publications": st.column_config.Column(
+                        width="small",
+                        help="Total number of articles published between 2015-2024, as referenced in OpenAlex"
+                    ),
+                    "Shared top fields": st.column_config.Column(
+                        width="small",
+                        help="List of research 'fields' (OpenAlex low granularity level) that represent more than 5% of publications for both institutions"
+                    ),
+                    "Shared top subfields": st.column_config.Column(
+                        width="small",
+                        help="List of research 'subfields'(OpenAlex medium granularity level) that represent more than 3% of publications for both institutions"
+                    ),
+                    "Shared top topics (count)": st.column_config.Column(
+                        width="small",
+                        help="Number of research topics shared between the top 50 topics of both institutions"
+                    ),
+                    "Shared top topics": st.column_config.Column(
+                        width="medium",
+                        help="List of shared OpenAlex 'topics' (high granularity level) from the top 50 most frequent topics of both institutions"
+                    ),
+                    "Shared top SDGs": st.column_config.Column(
+                        width="small",
+                        help="SDG-tagged publications that represent more than 1% of the total publications for both institutions"
+                    )
+                }
+            )
