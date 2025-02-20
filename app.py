@@ -314,7 +314,7 @@ st.header("On your mark... bench!")
 
 col1, col2 = st.columns([1, 3])
 with col1:
-    search_str = st.text_input("Enter partial institution name", placeholder="Enter partial institution name", key="search_str")
+    search_str = st.text_input(placeholder="Enter partial institution name", key="search_str")
 with col2:
     find_button = st.button("Find Matches")
 
