@@ -341,6 +341,12 @@ def run_benchmark(target_key, rank_range, min_appearances):
     
     final_df['Total publications'] = final_df['Total publications'].fillna(0).round().astype(int)
     
+    # Sort by shared topics count in descending order
+    final_df = final_df.sort_values(by='Shared top topics (count)', ascending=False)
+    
+    # Reset index starting at 1
+    final_df.index = range(1, len(final_df) + 1)
+
     return final_df
 
 # ---------------------------
@@ -859,26 +865,32 @@ if "current_institution" in st.session_state:
                         width="small"
                     ),
                     "Shared rankings (count)": st.column_config.Column(
+                        "Shared rankings\n(count)",  # Line break added
                         width="small",
                         help="Number of Scimago thematic rankings shared with the benchmarked institution in 2024"
                     ),
                     "Shared rankings (detail)": st.column_config.Column(
+                        "Shared rankings\n(detail)", # Line break added
                         width="small",
                         help="List of shared Scimago thematic rankings with rank position in each"
                     ),
                     "Total publications": st.column_config.Column(
+                        "Total pubs", # Short name for display
                         width="small",
                         help="Total number of articles published between 2015-2024, as referenced in OpenAlex"
                     ),
                     "Shared top fields": st.column_config.Column(
+                        "Shared top\nfields", # Line break added
                         width="small",
                         help="List of research 'fields' (OpenAlex low granularity level) that represent more than 5% of publications for both institutions"
                     ),
                     "Shared top subfields": st.column_config.Column(
+                        "Shared top\nsubfields", # Line break added
                         width="small",
                         help="List of research 'subfields'(OpenAlex medium granularity level) that represent more than 3% of publications for both institutions"
                     ),
                     "Shared top topics (count)": st.column_config.Column(
+                        "Shared top\ntopics (count)", # Line break added
                         width="small",
                         help="Number of research topics shared between the top 50 topics of both institutions"
                     ),
@@ -887,6 +899,7 @@ if "current_institution" in st.session_state:
                         help="List of shared OpenAlex 'topics' (high granularity level) from the top 50 most frequent topics of both institutions"
                     ),
                     "Shared top SDGs": st.column_config.Column(
+                        "Shared top\nSDGs", # Line break added
                         width="small",
                         help="SDG-tagged publications that represent more than 1% of the total publications for both institutions"
                     )
