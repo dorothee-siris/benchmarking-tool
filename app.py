@@ -276,14 +276,14 @@ def run_benchmark(target_key, rank_range, min_appearances):
         'ROR_name': 'Institution',
         'Scimago_country_code': 'Country code',
         'ROR_country': 'Country',
-        'appearances': 'Similar rankings (count)',
-        'ranking_detail': 'Similar rankings (detail)',
+        'appearances': 'Shared rankings (count)',
+        'ranking_detail': 'Shared rankings (detail)',
         'Total_Publications': 'Total publications',
-        'similar_fields': 'Similar top fields (>5%)',
-        'similar_subfields': 'Similar top subfields (>3%)',
-        'similar_topics_count': 'Similar top topics (count)',
-        'similar_topics_details': 'Similar top topics',
-        'similar_sdgs': 'Similar top SDGs (>1%)'
+        'similar_fields': 'Shared top fields',
+        'similar_subfields': 'Shared top subfields',
+        'similar_topics_count': 'Shared top topics (count)',
+        'similar_topics_details': 'Shared top topics',
+        'similar_sdgs': 'Shared top SDGs'
     })
     
     final_df['Total publications'] = final_df['Total publications'].fillna(0).round().astype(int)
@@ -546,7 +546,7 @@ if "current_institution" in st.session_state and "target_appearances" in st.sess
             As a reminder, <b>{target_inst}</b> appears in 
             <b style="color: #ef476f">{st.session_state.target_appearances}</b> Scimago thematic rankings in 2024 
             and adds up to <b style="color: #ef476f">{st.session_state.target_total_publications}</b> publications (articles only) 
-            for the period 2015-2024.
+            for the period 2015-2024.<br></br>
         </div>
         ''',
         unsafe_allow_html=True
@@ -554,7 +554,7 @@ if "current_institution" in st.session_state and "target_appearances" in st.sess
 st.number_input("Ranking distance (±)", value=100, min_value=1, max_value=1000, step=1, key="rank_range",help="Maximum distance allowed above or below the benchmarked institution's rank in each ranking")
 st.number_input("Min. shared rankings", value=3, min_value=1, max_value=100, step=1, key="min_appearances",help="Minimum number of rankings that must be shared with the benchmarked institution")
 st.number_input("Min. pubs", value=100, min_value=0, max_value=999999999, step=1, key="min_pubs",help="Minimum amount of publications (articles only) produced over the past 10 years")
-st.number_input("Max. pubs over the past 10 years", value=10000, min_value=0, max_value=999999999, step=1, key="max_pubs",help="Maximum amount of publications (articles only) produced over the past 10 years")
+st.number_input("Max. pubs", value=10000, min_value=0, max_value=999999999, step=1, key="max_pubs",help="Maximum amount of publications (articles only) produced over the past 10 years")
 st.checkbox("Europe only", value=True, key="europe_only")
 st.checkbox("Exclude target institution country", value=False, key="exclude_target_country")
 
@@ -594,14 +594,14 @@ def run_benchmark_callback():
         final_order = [
             'Institution',
             'Country',
-            'Similar rankings (count)',
+            'Shared rankings (count)',
             'Total publications',
-            'Similar top topics (count)',
-            'Similar top topics',
-            'Similar top subfields (>3%)',
-            'Similar top fields (>5%)',
-            'Similar top SDGs (>1%)',
-            'Similar rankings (detail)'
+            'Shared top topics (count)',
+            'Shared top topics',
+            'Shared top subfields',
+            'Shared top fields',
+            'Shared top SDGs',
+            'Shared rankings (detail)'
         ]
         bench_df = bench_df[final_order]
         st.session_state.benchmark_df = bench_df
@@ -625,34 +625,37 @@ if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not N
             "Country": st.column_config.Column(
                 width="small"
             ),
-            "Similar rankings (count)": st.column_config.Column(
+            "Shared rankings (count)": st.column_config.Column(
                 width="small",
-                help="Number of shared rankings"
+                help="Number of Scimago thematic rankings shared with the benchmarked institution in 2024"
             ),
-            "Similar rankings (detail)": st.column_config.Column(
-                width="small"
+            "Shared rankings (detail)": st.column_config.Column(
+                width="small",
+                help="List of shared Scimago thematic rankings with rank position in each"
             ),
             "Total publications": st.column_config.Column(
-                width="small"
+                width="small",
+                help="Total number of articles published between 2015-2024, as referenced in OpenAlex"
             ),
-            "Similar top fields (>5%)": st.column_config.Column(
-                "Top Fields\n(>5%)",  # Line break in header
-                width="small"
+            "Shared top fields": st.column_config.Column(
+                width="small",
+                help="List of research 'fields' (OpenAlex low granularity level) that represent more than 5% of publications for both institutions"
             ),
-            "Similar top subfields (>3%)": st.column_config.Column(
-                "Top Subfields\n(>3%)",
-                width="small"
+            "Shared top subfields": st.column_config.Column(
+                width="small",
+                help="List of research 'subfields'(OpenAlex medium granularity level) that represent more than 3% of publications for both institutions"
             ),
-            "Similar top topics (count)": st.column_config.Column(
-                "Topics\nCount",
-                width="small"
+            "Shared top topics (count)": st.column_config.Column(
+                width="small",
+                help="Number of research topics shared between the top 50 topics of both institutions"
             ),
-            "Similar top topics": st.column_config.Column(
-                width="medium"
+            "Shared top topics": st.column_config.Column(
+                width="medium",
+                help="List of shared OpenAlex 'topics' (high granularity level) from the top 50 most frequent topics of both institutions. Shows topic name, publication count, and percentage of total publications."
             ),
-            "Similar top SDGs (>1%)": st.column_config.Column(
-                "Top SDGs\n(>1%)",
-                width="small"
+            "Shared top SDGs": st.column_config.Column(
+                width="small",
+                help="UN Sustainable Development Goals that represent >1% of publications for both institutions"
             )
         }
     )
