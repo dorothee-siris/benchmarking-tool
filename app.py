@@ -279,7 +279,7 @@ def run_benchmark(target_key, rank_range, min_appearances):
         'appearances': 'Similar rankings (count)',
         'ranking_detail': 'Similar rankings (detail)',
         'Total_Publications': 'Total publications',
-        'similar_fields': 'Similar top fields (>5M)',
+        'similar_fields': 'Similar top fields (>5%)',
         'similar_subfields': 'Similar top subfields (>3%)',
         'similar_topics_count': 'Similar top topics (count)',
         'similar_topics_details': 'Similar top topics',
