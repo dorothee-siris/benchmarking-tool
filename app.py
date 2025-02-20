@@ -499,8 +499,8 @@ if "current_institution" in st.session_state:
                             ax_fields.annotate(f"{count:,}",
                                             xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                             xytext=(3, 0), textcoords="offset points",
-                                            va='center', fontsize=10)
-                        ax_fields.margins(x=0.1)
+                                            va='center', fontsize=9)
+                        ax_fields.margins(x=0.15)
                         plt.tight_layout()
                         st.pyplot(fig_fields, use_container_width=True)
                 else:
@@ -511,7 +511,7 @@ if "current_institution" in st.session_state:
                     st.markdown('<p class="small-subheader">Top Subfields (>3%)</p>', unsafe_allow_html=True)
                     plot_col = st.columns([2, 1])[0]
                     with plot_col:
-                        fig_subfields, ax_subfields = plt.subplots(figsize=(9, 7))
+                        fig_subfields, ax_subfields = plt.subplots(figsize=(9, 6))
                         fig_subfields.set_dpi(100)
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
@@ -523,8 +523,8 @@ if "current_institution" in st.session_state:
                             ax_subfields.annotate(f"{count:,}",
                                                 xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                 xytext=(3, 0), textcoords="offset points",
-                                                va='center', fontsize=10)
-                        ax_subfields.margins(x=0.1)
+                                                va='center', fontsize=9)
+                        ax_subfields.margins(x=0.15)
                         plt.tight_layout()
                         st.pyplot(fig_subfields, use_container_width=True)
                 else:
@@ -547,8 +547,8 @@ if "current_institution" in st.session_state:
                             ax_sdgs.annotate(f"{count:,}",
                                             xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                             xytext=(3, 0), textcoords="offset points",
-                                            va='center', fontsize=10)
-                        ax_sdgs.margins(x=0.1)
+                                            va='center', fontsize=9)
+                        ax_sdgs.margins(x=0.15)
                         plt.tight_layout()
                         st.pyplot(fig_sdgs, use_container_width=True)
                 else:
@@ -556,84 +556,18 @@ if "current_institution" in st.session_state:
                 
                 topics_data = parse_topics_string(topics_str)
                 if topics_data and total_pubs_int:
-                    # Create initial dataframe
                     topics_data = [(name.strip(), count, round(count/total_pubs_int*100, 2))
                                 for name, count in topics_data]
                     topics_df = pd.DataFrame(topics_data, columns=["Topic", "Count", "Ratio"])
                     topics_df = topics_df.sort_values(by="Count", ascending=False).reset_index(drop=True)
-                    
-                    # Pad to 50 rows if needed
-                    if len(topics_df) < 50:
-                        missing = 50 - len(topics_df)
-                        pad_df = pd.DataFrame([["", 0, 0.0]] * missing, columns=["Topic", "Count", "Ratio"])
-                        topics_df = pd.concat([topics_df, pad_df], ignore_index=True)
-                    else:
-                        topics_df = topics_df.iloc[:50].reset_index(drop=True)
-                    
-                    # Split into two halves
-                    top_half = topics_df.iloc[:25].reset_index(drop=True)
-                    bottom_half = topics_df.iloc[25:50].reset_index(drop=True)
-                    
-                    # Create combined dataframe with separator column
-                    combined_topics_df = pd.DataFrame({
-                        "Rank": list(range(1, 26)),
-                        "Topic": top_half["Topic"],
-                        "Count": top_half["Count"],
-                        "Ratio": top_half["Ratio"],
-                        "i": ["." for _ in range(25)],  # Separator column
-                        "Rank.": list(range(26, 51)),
-                        "Topic.": bottom_half["Topic"],
-                        "Count.": bottom_half["Count"],
-                        "Ratio.": bottom_half["Ratio"]
-                    })
-                    
-                    # Create custom colormap
+                    topics_df = topics_df.head(50)
+                    topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
                     custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
                         "custom_yellow", ["#FFFFFF", "#d9bc2b", "#695806"]
                     )
-                    
-                    # Style the dataframe
-                    styled_topics_df = combined_topics_df.style\
-                        .format({
-                            "Ratio": "{:.2f} %",
-                            "Ratio.": "{:.2f} %"
-                        })\
-                        .background_gradient(
-                            subset=["Ratio", "Ratio."],
-                            cmap=custom_cmap,
-                            vmin=0,
-                            vmax=6
-                        )\
-                        .set_table_styles([
-                            # Basic styles
-                            {'selector': 'th', 'props': [('font-size', '11pt')]},
-                            {'selector': 'td', 'props': [('font-size', '10pt')]},
-                            # Make only the 'i' column header white, others will inherit dark mode color
-                            {'selector': 'th:nth-child(5)', 'props': [
-                                ('background-color', 'white !important'),
-                                ('color', 'white !important')
-                            ]},
-                            # Style for separator column cells
-                            {'selector': 'td:nth-child(5)', 'props': [
-                                ('background-color', 'white !important'),
-                                ('color', 'white !important'),
-                                ('width', '10px')
-                            ]},
-                            # Center align all headers
-                            {'selector': 'th', 'props': [('text-align', 'center')]},
-                        ])\
-                        .set_properties(
-                            subset=["i"],
-                            **{
-                                'background-color': 'white',
-                                'color': 'white',
-                                'text-align': 'center',
-                                'width': '10px'
-                            }
-                        )\
-                        .hide(axis="index")
-                    
-                    st.markdown('<p class="small-subheader">Top 50 Topics</p>', unsafe_allow_html=True)
+                    styled_topics_df = topics_df.style.format({"Ratio": "{:.2f} %"}).background_gradient(
+                        subset=["Ratio"], cmap=custom_cmap, vmin=0, vmax=6
+                    ).hide(axis="index")
                     st.markdown(styled_topics_df.to_html(), unsafe_allow_html=True)
                 else:
                     st.info("No topics data available.")
