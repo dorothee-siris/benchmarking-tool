@@ -31,6 +31,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Add the custom CSS at the top of your script after your other styles
+st.markdown("""
+    <style>
+        .small-subheader {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: rgb(49, 51, 63);
+            margin-bottom: 0.5rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # ---------------------------
 # Caching Data Loading
 # ---------------------------
@@ -416,7 +428,7 @@ if "current_institution" in st.session_state:
             # Store these values in session_state:
             st.session_state.target_total_publications = total_pubs_str
 
-            st.markdown(f"<b>Total publications (articles only) for 2015-2024: <span style='color:red'>{total_pubs_str}</span></b>", unsafe_allow_html=True)
+            st.markdown(f"<b>Total publications for 2015-2024: <span style='color:red'>{total_pubs_str}</span></b>", unsafe_allow_html=True)
             
             # Additional enrichment and histograms (fields, subfields, SDGs, topics) as before...
             df_filtered = df_enriched[
@@ -470,64 +482,73 @@ if "current_institution" in st.session_state:
                 
                 formatter = mticker.FuncFormatter(lambda x, pos: f"{int(round(x))} %")
                 
+                # Fields visualization
                 if fields_data:
-                    st.subheader("Top Fields (>5%)")
-                    fig_fields, ax_fields = plt.subplots(figsize=(10, 5))
-                    fig_fields.set_dpi(100)
-                    names_fields = [x[0] for x in fields_data]
-                    percentages_fields = [x[2] for x in fields_data]
-                    bars = ax_fields.barh(names_fields, percentages_fields, color='#16a4d8')
-                    ax_fields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
-                    ax_fields.xaxis.set_major_formatter(formatter)
-                    ax_fields.invert_yaxis()
-                    for bar, (_, count, _) in zip(bars, fields_data):
-                        ax_fields.annotate(f"{count:,}",
-                                        xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
-                                        xytext=(3, 0), textcoords="offset points",
-                                        va='center', fontsize=10)
-                    ax_fields.margins(x=0.05)
-                    plt.tight_layout()
-                    st.pyplot(fig_fields, use_container_width=False)
-                else:
-                    st.info("No fields data >5%.")
-                
-                if subfields_data:
-                    st.subheader("Top Subfields (>3%)")
-                    fig_subfields, ax_subfields = plt.subplots(figsize=(10, 6))
-                    fig_subfields.set_dpi(100)
-                    names_subfields = [x[0] for x in subfields_data]
-                    percentages_subfields = [x[2] for x in subfields_data]
-                    bars = ax_subfields.barh(names_subfields, percentages_subfields, color='#60dbe8')
-                    ax_subfields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
-                    ax_subfields.xaxis.set_major_formatter(formatter)
-                    ax_subfields.invert_yaxis()
-                    for bar, (_, count, _) in zip(bars, subfields_data):
-                        ax_subfields.annotate(f"{count:,}",
+                    st.markdown('<p class="small-subheader">Top Fields (>5%)</p>', unsafe_allow_html=True)
+                    plot_col = st.columns([2, 1])[0]
+                    with plot_col:
+                        fig_fields, ax_fields = plt.subplots(figsize=(10, 6))
+                        fig_fields.set_dpi(100)
+                        names_fields = [x[0] for x in fields_data]
+                        percentages_fields = [x[2] for x in fields_data]
+                        bars = ax_fields.barh(names_fields, percentages_fields, color='#16a4d8')
+                        ax_fields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
+                        ax_fields.xaxis.set_major_formatter(formatter)
+                        ax_fields.invert_yaxis()
+                        for bar, (_, count, _) in zip(bars, fields_data):
+                            ax_fields.annotate(f"{count:,}",
                                             xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                             xytext=(3, 0), textcoords="offset points",
                                             va='center', fontsize=10)
-                    plt.tight_layout()
-                    st.pyplot(fig_subfields, use_container_width=False)
+                        ax_fields.margins(x=0.05)
+                        plt.tight_layout()
+                        st.pyplot(fig_fields, use_container_width=True)
+                else:
+                    st.info("No fields data >5%.")
+                
+                # Subfields visualization
+                if subfields_data:
+                    st.markdown('<p class="small-subheader">Top Subfields (>3%)</p>', unsafe_allow_html=True)
+                    plot_col = st.columns([2, 1])[0]
+                    with plot_col:
+                        fig_subfields, ax_subfields = plt.subplots(figsize=(10, 8))
+                        fig_subfields.set_dpi(100)
+                        names_subfields = [x[0] for x in subfields_data]
+                        percentages_subfields = [x[2] for x in subfields_data]
+                        bars = ax_subfields.barh(names_subfields, percentages_subfields, color='#60dbe8')
+                        ax_subfields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
+                        ax_subfields.xaxis.set_major_formatter(formatter)
+                        ax_subfields.invert_yaxis()
+                        for bar, (_, count, _) in zip(bars, subfields_data):
+                            ax_subfields.annotate(f"{count:,}",
+                                                xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                                                xytext=(3, 0), textcoords="offset points",
+                                                va='center', fontsize=10)
+                        plt.tight_layout()
+                        st.pyplot(fig_subfields, use_container_width=True)
                 else:
                     st.info("No subfields data >3%.")
                 
+                # SDGs visualization
                 if sdg_data_labeled:
-                    st.subheader("Top SDGs (>1%)")
-                    fig_sdgs, ax_sdgs = plt.subplots(figsize=(10, 5))
-                    fig_sdgs.set_dpi(100)
-                    names_sdgs = [x[0] for x in sdg_data_labeled]
-                    percentages_sdgs = [x[2] for x in sdg_data_labeled]
-                    bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#9b5fe0')
-                    ax_sdgs.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
-                    ax_sdgs.xaxis.set_major_formatter(formatter)
-                    ax_sdgs.invert_yaxis()
-                    for bar, (_, count, _) in zip(bars, sdg_data_labeled):
-                        ax_sdgs.annotate(f"{count:,}",
-                                        xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
-                                        xytext=(3, 0), textcoords="offset points",
-                                        va='center', fontsize=10)
-                    plt.tight_layout()
-                    st.pyplot(fig_sdgs, use_container_width=False)
+                    st.markdown('<p class="small-subheader">Top SDGs (>1%)</p>', unsafe_allow_html=True)
+                    plot_col = st.columns([2, 1])[0]
+                    with plot_col:
+                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(10, 6))
+                        fig_sdgs.set_dpi(100)
+                        names_sdgs = [x[0] for x in sdg_data_labeled]
+                        percentages_sdgs = [x[2] for x in sdg_data_labeled]
+                        bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#9b5fe0')
+                        ax_sdgs.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
+                        ax_sdgs.xaxis.set_major_formatter(formatter)
+                        ax_sdgs.invert_yaxis()
+                        for bar, (_, count, _) in zip(bars, sdg_data_labeled):
+                            ax_sdgs.annotate(f"{count:,}",
+                                            xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                                            xytext=(3, 0), textcoords="offset points",
+                                            va='center', fontsize=10)
+                        plt.tight_layout()
+                        st.pyplot(fig_sdgs, use_container_width=True)
                 else:
                     st.info("No SDGs data >1%.")
                 
@@ -616,14 +637,9 @@ if "current_institution" in st.session_state:
                     help="Maximum amount of publications (articles only) produced over the past 10 years"
                 )
             
-            # Create two columns for the checkboxes
-            col_check1, col_check2 = st.columns(2)
-            
-            with col_check1:
-                st.checkbox("Europe only", value=True, key="europe_only")
-            
-            with col_check2:
-                st.checkbox("Exclude target institution country", value=False, key="exclude_target_country")
+            # check boxes one after the other
+            st.checkbox("Europe only", value=True, key="europe_only")
+            st.checkbox("Exclude target institution country", value=False, key="exclude_target_country")
 
         # ---------------------------
         # Callback for Running Benchmark
