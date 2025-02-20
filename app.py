@@ -389,20 +389,20 @@ def run_benchmark(target_key, rank_range, min_appearances):
     })
     
     final_df['Total publications'] = final_df['Total publications'].fillna(0).round().astype(int)
-    
+        
     # Sort by shared topics count in descending order
     final_df = final_df.sort_values(by='Shared top topics (count)', ascending=False)
     
-    # Apply color styling to the topics count column
+    # Reset index starting at 1
+    final_df.index = range(1, len(final_df) + 1)
+    
+    # Apply color styling to the topics count column and return the styled dataframe
     styled_df = final_df.style.applymap(
         color_topics_count,
         subset=['Shared top topics (count)']
     )
 
-    # Reset index starting at 1
-    final_df.index = range(1, len(final_df) + 1)
-
-    return final_df
+    return styled_df  # Return the styled dataframe instead of final_df
 
 # ---------------------------
 # UI: First Section – Display Institution Results
@@ -910,7 +910,7 @@ if "current_institution" in st.session_state:
         if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not None:
             st.markdown("<h3>Benchmarking Results</h3>", unsafe_allow_html=True)
             st.dataframe(
-                st.session_state.benchmark_df,
+                st.session_state.benchmark_df,  # This is now the styled dataframe
                 use_container_width=True,
                 column_config={
                     "Institution": st.column_config.Column(
@@ -955,8 +955,8 @@ if "current_institution" in st.session_state:
                 }
             )
 
-            # Add download button
-            csv = st.session_state.benchmark_df.to_csv(index=False)  
+            # Add download button - use the underlying data for CSV
+            csv = st.session_state.benchmark_df.data.to_csv(index=False)  # Use .data to get the raw dataframe
             st.download_button(
                 label="Download benchmark results as CSV",
                 data=csv,
