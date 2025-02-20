@@ -592,16 +592,16 @@ def run_benchmark_callback():
         bench_df = bench_df.drop(columns=['Country code'])
         # Reorder and rename columns as required:
         final_order = [
-            'Institution name',
-            'Country name',
-            'Appearances in rankings',
+            'Institution',
+            'Country',
+            'Similar rankings (count)',
+            'Similar rankings (detail)',
             'Total publications',
+            'Similar top fields (>5%)',
+            'Similar top subfields (>3%)',
             'Similar top topics (count)',
             'Similar top topics',
-            'Similar top subfields',
-            'Similar top fields',
-            'Similar top SDGs',
-            'Ranking details'
+            'Similar top SDGs (>1%)'
         ]
         bench_df = bench_df[final_order]
         st.session_state.benchmark_df = bench_df
