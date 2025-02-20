@@ -546,17 +546,67 @@ if "current_institution" in st.session_state and "target_appearances" in st.sess
             As a reminder, <b>{target_inst}</b> appears in 
             <b style="color: #ef476f">{st.session_state.target_appearances}</b> Scimago thematic rankings in 2024 
             and adds up to <b style="color: #ef476f">{st.session_state.target_total_publications}</b> publications (articles only) 
-            for the period 2015-2024.<br></br>
+            for the period 2015-2024.
         </div>
         ''',
         unsafe_allow_html=True
     )
-st.number_input("Ranking distance (±)", value=100, min_value=1, max_value=1000, step=1, key="rank_range",help="Maximum distance allowed above or below the benchmarked institution's rank in each ranking")
-st.number_input("Min. shared rankings", value=3, min_value=1, max_value=100, step=1, key="min_appearances",help="Minimum number of rankings that must be shared with the benchmarked institution")
-st.number_input("Min. pubs", value=100, min_value=0, max_value=999999999, step=1, key="min_pubs",help="Minimum amount of publications (articles only) produced over the past 10 years")
-st.number_input("Max. pubs", value=10000, min_value=0, max_value=999999999, step=1, key="max_pubs",help="Maximum amount of publications (articles only) produced over the past 10 years")
-st.checkbox("Europe only", value=True, key="europe_only")
-st.checkbox("Exclude target institution country", value=False, key="exclude_target_country")
+
+    # Create four columns for the numeric inputs
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.number_input(
+            "Ranking distance (±)", 
+            value=100, 
+            min_value=1, 
+            max_value=1000, 
+            step=1, 
+            key="rank_range",
+            help="Maximum distance allowed above or below the benchmarked institution's rank in each ranking"
+        )
+    
+    with col2:
+        st.number_input(
+            "Min. shared rankings",
+            value=3,
+            min_value=1,
+            max_value=100,
+            step=1,
+            key="min_appearances",
+            help="Minimum number of rankings that must be shared with the benchmarked institution"
+        )
+    
+    with col3:
+        st.number_input(
+            "Min. pubs",
+            value=100,
+            min_value=0,
+            max_value=999999999,
+            step=1,
+            key="min_pubs",
+            help="Minimum amount of publications (articles only) produced over the past 10 years"
+        )
+    
+    with col4:
+        st.number_input(
+            "Max. pubs",
+            value=10000,
+            min_value=0,
+            max_value=999999999,
+            step=1,
+            key="max_pubs",
+            help="Maximum amount of publications (articles only) produced over the past 10 years"
+        )
+    
+    # Create two columns for the checkboxes
+    col_check1, col_check2 = st.columns(2)
+    
+    with col_check1:
+        st.checkbox("Europe only", value=True, key="europe_only")
+    
+    with col_check2:
+        st.checkbox("Exclude target institution country", value=False, key="exclude_target_country")
 
 # ---------------------------
 # Callback for Running Benchmark
@@ -651,11 +701,11 @@ if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not N
             ),
             "Shared top topics": st.column_config.Column(
                 width="medium",
-                help="List of shared OpenAlex 'topics' (high granularity level) from the top 50 most frequent topics of both institutions. Shows topic name, publication count, and percentage of total publications."
+                help="List of shared OpenAlex 'topics' (high granularity level) from the top 50 most frequent topics of both institutions"
             ),
             "Shared top SDGs": st.column_config.Column(
                 width="small",
-                help="UN Sustainable Development Goals that represent >1% of publications for both institutions"
+                help="SDG-tagged publications that represent more than 1% of the total publications for both institutions"
             )
         }
     )
