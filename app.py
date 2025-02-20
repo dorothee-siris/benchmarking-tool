@@ -574,19 +574,20 @@ if "current_institution" in st.session_state:
                     top_half = topics_df.iloc[:25].reset_index(drop=True)
                     bottom_half = topics_df.iloc[25:50].reset_index(drop=True)
                     
-                    # Create combined dataframe
+                    # Create combined dataframe with separator column
                     combined_topics_df = pd.DataFrame({
                         "Rank": list(range(1, 26)),
                         "Topic": top_half["Topic"],
                         "Count": top_half["Count"],
                         "Ratio": top_half["Ratio"],
-                        "Rank.": list(range(26, 51)),  # Added dot to column names
+                        "Sep": ["." for _ in range(25)],  # Separator column
+                        "Rank.": list(range(26, 51)),
                         "Topic.": bottom_half["Topic"],
                         "Count.": bottom_half["Count"],
                         "Ratio.": bottom_half["Ratio"]
                     })
                     
-                    # Create custom colormap from white to yellow to brown
+                    # Create custom colormap
                     custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
                         "custom_yellow", ["#FFFFFF", "#d9bc2b", "#695806"]
                     )
@@ -604,14 +605,33 @@ if "current_institution" in st.session_state:
                             vmax=6
                         )\
                         .set_table_styles([
+                            # Basic styles
                             {'selector': 'th', 'props': [('font-size', '11pt')]},
                             {'selector': 'td', 'props': [('font-size', '10pt')]},
-                            # Add black color to the dots in column headers
-                            {'selector': 'th.col_heading', 'props': [('color', 'white')]},
+                            # Make the dots in column headers black to blend with background
+                            {'selector': 'th.col_heading', 'props': [('color', 'black')]},
+                            # Center align all headers
+                            {'selector': 'th', 'props': [('text-align', 'center')]},
+                            # Style for separator column
+                            {'selector': 'td:nth-child(5)', 'props': [('background-color', 'white !important')]},
+                            {'selector': 'th:nth-child(5)', 'props': [('background-color', 'white !important')]},
                         ])\
                         .set_properties(
                             subset=["Rank", "Rank."],
-                            **{'background-color': '#f0f2f6', 'text-align': 'center'}
+                            **{
+                                'background-color': '#f0f2f6',
+                                'text-align': 'center',
+                                'color': 'black'
+                            }
+                        )\
+                        .set_properties(
+                            subset=["Sep"],
+                            **{
+                                'background-color': 'white',
+                                'color': 'white',
+                                'text-align': 'center',
+                                'width': '20px'
+                            }
                         )\
                         .hide(axis="index")
                     
