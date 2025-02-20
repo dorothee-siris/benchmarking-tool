@@ -426,6 +426,7 @@ if "current_institution" in st.session_state:
                 result_df[col] = result_df[col].apply(lambda x: fix_width(x, 11))
             
             # In the Scimago results section:
+            st.markdown('<hr style="border: 1px solid #ef476f;">', unsafe_allow_html=True)
             st.markdown("<h3>Scimago results</h3>", unsafe_allow_html=True)
             st.markdown("Thematic rankings with no data started in 2022.", unsafe_allow_html=True)
             styled_df = result_df.style.apply(color_cells_dynamic, axis=1).hide(axis="index")
@@ -437,7 +438,7 @@ if "current_institution" in st.session_state:
                 ", ".join(summary_parts) + ".",
                 unsafe_allow_html=True
             )
-            st.markdown('<hr style="border: 2px solid #ef476f;">', unsafe_allow_html=True)
+            st.markdown('<hr style="border: 1px solid #ef476f;">', unsafe_allow_html=True)
             # Store the number of appearances in 2024 rankings:
             st.session_state.target_appearances = summary_counts[2024]
 
@@ -659,7 +660,7 @@ if "current_institution" in st.session_state:
                     topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
 
                     # Create a column container that takes up about 2/3 of the page width
-                    col1, col2 = st.columns([2, 1])  # Creates a 2:1 ratio, so first column takes up 2/3 of space
+                    col1, col2 = st.columns([1, 1])  # Creates a 1:1 ratio
 
                     with col1:
                         st.markdown('<p class="small-subheader">Top 50 Topics</p>', unsafe_allow_html=True)
@@ -703,6 +704,7 @@ if "current_institution" in st.session_state:
                             file_name="top_50_topics.csv",
                             mime="text/csv",
                         )
+                        st.markdown('<hr style="border: 1px solid #ef476f;">', unsafe_allow_html=True)
                 else:
                     st.info("No topics data available.")
             else:
@@ -877,4 +879,12 @@ if "current_institution" in st.session_state:
                         help="SDG-tagged publications that represent more than 1% of the total publications for both institutions"
                     )
                 }
+            )
+            # Add download button
+            csv = st.session_state.benchmark_df.to_csv(index=False)
+            st.download_button(
+                label="Download benchmark results as CSV",
+                data=csv,
+                file_name=f"benchmark_results_{st.session_state.current_institution[0]}.csv",
+                mime="text/csv",
             )
