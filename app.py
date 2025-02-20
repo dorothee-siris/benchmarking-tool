@@ -512,22 +512,54 @@ if "current_institution" in st.session_state:
                     st.markdown('<p class="small-subheader">Top Fields (>5%)</p>', unsafe_allow_html=True)
                     plot_col = st.columns([2, 1])[0]
                     with plot_col:
+                        # Create figure with dark background
+                        plt.style.use('dark_background')
                         fig_fields, ax_fields = plt.subplots(figsize=(9, 5))
                         fig_fields.set_dpi(100)
+                        
+                        # Set figure background to black
+                        fig_fields.patch.set_facecolor('#000000')
+                        ax_fields.set_facecolor('#000000')
+                        
+                        # Plot data
                         names_fields = [x[0] for x in fields_data]
                         percentages_fields = [x[2] for x in fields_data]
                         bars = ax_fields.barh(names_fields, percentages_fields, color='#16a4d8')
-                        ax_fields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
+                        
+                        # Style the axes and labels in white
+                        ax_fields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10, color='white')
                         ax_fields.xaxis.set_major_formatter(formatter)
                         ax_fields.invert_yaxis()
+                        
+                        # Style the ticks in white
+                        ax_fields.tick_params(axis='both', colors='white')
+                        for label in ax_fields.get_xticklabels():
+                            label.set_color('white')
+                        for label in ax_fields.get_yticklabels():
+                            label.set_color('white')
+                            
+                        # Add white spines
+                        for spine in ax_fields.spines.values():
+                            spine.set_color('white')
+                        
+                        # Add count annotations in white
                         for bar, (_, count, _) in zip(bars, fields_data):
-                            ax_fields.annotate(f"{count:,}",
-                                            xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
-                                            xytext=(3, 0), textcoords="offset points",
-                                            va='center', fontsize=9)
+                            ax_fields.annotate(
+                                f"{count:,}",
+                                xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                                xytext=(3, 0),
+                                textcoords="offset points",
+                                va='center',
+                                fontsize=9,
+                                color='white'
+                            )
+                            
                         ax_fields.margins(x=0.15)
                         plt.tight_layout()
                         st.pyplot(fig_fields, use_container_width=True)
+                        
+                        # Reset to default style for other plots
+                        plt.style.use('default')
                 else:
                     st.info("No fields data >5%.")
                 
@@ -619,6 +651,15 @@ if "current_institution" in st.session_state:
                         },
                         hide_index=True,
                         use_container_width=False
+                    )
+
+                    # Add download button for CSV
+                    csv = topics_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download topics as CSV",
+                        data=csv,
+                        file_name=f"top_50_topics_{institution_name}.csv",
+                        mime="text/csv",
                     )
                 else:
                     st.info("No topics data available.")
