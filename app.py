@@ -136,30 +136,67 @@ def fix_width(cell, width=11):
         return s[:width]
     return s.ljust(width)
 
-# Add your new color scale function here
 def color_scale(val):
-    # Maximum value for scaling (6% as in original)
-    max_val = 6
+    # Define thresholds (0%, 2%, 4%, 6%)
+    thresholds = [0, 2, 4, 6]
+    colors = ["#FFFFFF", "#d9bc2b", "#695806", "#332a00"]
     
-    # Normalize the value between 0 and 1
-    ratio = min(val / max_val, 1)
+    # Handle values above max threshold
+    if val >= thresholds[-1]:
+        return f"background-color: {colors[-1]}; color: white"
     
-    # Define your three colors
-    c0 = np.array([255, 255, 255])  # White
-    c1 = np.array([217, 188, 43])   # #d9bc2b
-    c2 = np.array([105, 88, 6])     # #695806
+    # Find the interval where the value falls
+    for i in range(len(thresholds)-1):
+        if thresholds[i] <= val < thresholds[i+1]:
+            # Calculate ratio within this interval
+            ratio = (val - thresholds[i]) / (thresholds[i+1] - thresholds[i])
+            
+            # Convert hex to RGB for interpolation
+            c1 = np.array([int(colors[i][j:j+2], 16) for j in (1, 3, 5)])
+            c2 = np.array([int(colors[i+1][j:j+2], 16) for j in (1, 3, 5)])
+            
+            # Interpolate
+            c = c1 * (1-ratio) + c2 * ratio
+            
+            # Convert back to hex
+            hex_color = '#%02x%02x%02x' % tuple(c.astype(int))
+            
+            # Use white text for values >= 4%
+            text_color = "white" if val >= 4 else "black"
+            return f"background-color: {hex_color}; color: {text_color}"
     
-    # Interpolate colors
-    if ratio <= 0.5:
-        w = ratio * 2
-        color = (1 - w) * c0 + w * c1
-    else:
-        w = (ratio - 0.5) * 2
-        color = (1 - w) * c1 + w * c2
+    return f"background-color: {colors[0]}; color: black"
+
+def color_topics_count(val):
+    # Define your thresholds and colors
+    thresholds = [0, 10, 20, 30]
+    colors = ["#FFFFFF", "#d9bc2b", "#695806", "#332a00"]
     
-    # Convert to hex color
-    hex_color = '#%02x%02x%02x' % tuple(color.astype(int))
-    return f"background-color: {hex_color}; color: black"
+    # Handle values above max threshold
+    if val >= thresholds[-1]:
+        return f"background-color: {colors[-1]}; color: white"
+    
+    # Find the interval where the value falls
+    for i in range(len(thresholds)-1):
+        if thresholds[i] <= val < thresholds[i+1]:
+            # Calculate ratio within this interval
+            ratio = (val - thresholds[i]) / (thresholds[i+1] - thresholds[i])
+            
+            # Convert hex to RGB for interpolation
+            c1 = np.array([int(colors[i][j:j+2], 16) for j in (1, 3, 5)])
+            c2 = np.array([int(colors[i+1][j:j+2], 16) for j in (1, 3, 5)])
+            
+            # Interpolate
+            c = c1 * (1-ratio) + c2 * ratio
+            
+            # Convert back to hex
+            hex_color = '#%02x%02x%02x' % tuple(c.astype(int))
+            
+            # Use white text for values >= 20
+            text_color = "white" if val >= 20 else "black"
+            return f"background-color: {hex_color}; color: {text_color}"
+    
+    return f"background-color: {colors[0]}; color: black"
 
 # ---------------------------
 # Heatmap Styling Function
@@ -356,6 +393,12 @@ def run_benchmark(target_key, rank_range, min_appearances):
     # Sort by shared topics count in descending order
     final_df = final_df.sort_values(by='Shared top topics (count)', ascending=False)
     
+    # Apply color styling to the topics count column
+    styled_df = final_df.style.applymap(
+        color_topics_count,
+        subset=['Shared top topics (count)']
+    )
+
     # Reset index starting at 1
     final_df.index = range(1, len(final_df) + 1)
 
@@ -912,7 +955,7 @@ if "current_institution" in st.session_state:
                 }
             )
             # Add download button
-            csv = st.session_state.benchmark_df.to_csv(index=False)
+            csv = st.session_state.benchmark_df.data.to_csv(index=False)
             st.download_button(
                 label="Download benchmark results as CSV",
                 data=csv,
