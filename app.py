@@ -23,11 +23,6 @@ st.markdown("""
             color: white;
             font-weight: bold;
         }
-        div.stButton > button:first-child:hover {
-            background-color: #d03d61;  /* Slightly darker shade for hover effect */
-            color: white;
-            font-weight: bold;
-        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -865,12 +860,10 @@ if "current_institution" in st.session_state:
                         width="small"
                     ),
                     "Shared rankings (count)": st.column_config.Column(
-                        "Shared rankings<br>(count)",  # Line break added
                         width="small",
                         help="Number of Scimago thematic rankings shared with the benchmarked institution in 2024"
                     ),
                     "Shared rankings (detail)": st.column_config.Column(
-                        "Shared rankings<br>(detail)", # Line break added
                         width="small",
                         help="List of shared Scimago thematic rankings with rank position in each"
                     ),
@@ -880,17 +873,14 @@ if "current_institution" in st.session_state:
                         help="Total number of articles published between 2015-2024, as referenced in OpenAlex"
                     ),
                     "Shared top fields": st.column_config.Column(
-                        "Shared top\nfields", # Line break added
                         width="small",
                         help="List of research 'fields' (OpenAlex low granularity level) that represent more than 5% of publications for both institutions"
                     ),
                     "Shared top subfields": st.column_config.Column(
-                        "Shared top\nsubfields", # Line break added
                         width="small",
                         help="List of research 'subfields'(OpenAlex medium granularity level) that represent more than 3% of publications for both institutions"
                     ),
                     "Shared top topics (count)": st.column_config.Column(
-                        "Shared top\ntopics (count)", # Line break added
                         width="small",
                         help="Number of research topics shared between the top 50 topics of both institutions"
                     ),
@@ -899,7 +889,6 @@ if "current_institution" in st.session_state:
                         help="List of shared OpenAlex 'topics' (high granularity level) from the top 50 most frequent topics of both institutions"
                     ),
                     "Shared top SDGs": st.column_config.Column(
-                        "Shared top\nSDGs", # Line break added
                         width="small",
                         help="SDG-tagged publications that represent more than 1% of the total publications for both institutions"
                     )
