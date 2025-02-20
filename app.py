@@ -608,22 +608,20 @@ if "current_institution" in st.session_state:
                             # Basic styles
                             {'selector': 'th', 'props': [('font-size', '11pt')]},
                             {'selector': 'td', 'props': [('font-size', '10pt')]},
-                            # Make the dots in column headers black to blend with background
-                            {'selector': 'th.col_heading', 'props': [('color', 'black')]},
+                            # Make only the 'i' column header white, others will inherit dark mode color
+                            {'selector': 'th:nth-child(5)', 'props': [
+                                ('background-color', 'white !important'),
+                                ('color', 'white !important')
+                            ]},
+                            # Style for separator column cells
+                            {'selector': 'td:nth-child(5)', 'props': [
+                                ('background-color', 'white !important'),
+                                ('color', 'white !important'),
+                                ('width', '10px')
+                            ]},
                             # Center align all headers
                             {'selector': 'th', 'props': [('text-align', 'center')]},
-                            # Style for separator column
-                            {'selector': 'td:nth-child(5)', 'props': [('background-color', 'white !important')]},
-                            {'selector': 'th:nth-child(5)', 'props': [('background-color', 'white !important')]},
                         ])\
-                        .set_properties(
-                            subset=["Rank", "Rank."],
-                            **{
-                                'background-color': '#f0f2f6',
-                                'text-align': 'center',
-                                'color': 'black'
-                            }
-                        )\
                         .set_properties(
                             subset=["i"],
                             **{
