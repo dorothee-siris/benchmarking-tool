@@ -124,6 +124,31 @@ def fix_width(cell, width=11):
         return s[:width]
     return s.ljust(width)
 
+# Add your new color scale function here
+def color_scale(val):
+    # Maximum value for scaling (6% as in original)
+    max_val = 6
+    
+    # Normalize the value between 0 and 1
+    ratio = min(val / max_val, 1)
+    
+    # Define your three colors
+    c0 = np.array([255, 255, 255])  # White
+    c1 = np.array([217, 188, 43])   # #d9bc2b
+    c2 = np.array([105, 88, 6])     # #695806
+    
+    # Interpolate colors
+    if ratio <= 0.5:
+        w = ratio * 2
+        color = (1 - w) * c0 + w * c1
+    else:
+        w = (ratio - 0.5) * 2
+        color = (1 - w) * c1 + w * c2
+    
+    # Convert to hex color
+    hex_color = '#%02x%02x%02x' % tuple(color.astype(int))
+    return f"background-color: {hex_color}"
+
 # ---------------------------
 # Heatmap Styling Function
 # ---------------------------
@@ -565,9 +590,12 @@ if "current_institution" in st.session_state:
 
                     st.markdown('<p class="small-subheader">Top 50 Topics</p>', unsafe_allow_html=True)
                     
-                    # Display as an interactive dataframe with custom formatting
+                    # Apply styling with the color_scale function
+                    styled_df = topics_df.style.applymap(color_scale, subset=['Ratio'])
+                    
+                    # Display as an interactive dataframe
                     st.dataframe(
-                        topics_df,
+                        styled_df,
                         column_config={
                             "Rank": st.column_config.NumberColumn(
                                 "Rank",
@@ -593,6 +621,14 @@ if "current_institution" in st.session_state:
                         use_container_width=True
                     )
 
+                    # Add download button for CSV
+                    csv = topics_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download topics as CSV",
+                        data=csv,
+                        file_name="top_50_topics.csv",
+                        mime="text/csv",
+                    )
                 else:
                     st.info("No topics data available.")
             else:
