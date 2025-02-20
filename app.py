@@ -956,7 +956,7 @@ if "current_institution" in st.session_state:
             )
 
             # Get the underlying data from the Styler object
-            raw_df = st.session_state.benchmark_df._data  # or .data_frame for newer versions
+            raw_df = st.session_state.benchmark_df._data_frame  # or .data_frame for newer versions
 
             # Add download button using the raw dataframe
             csv = raw_df.to_csv(index=False)
