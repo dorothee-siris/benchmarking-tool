@@ -562,13 +562,37 @@ if "current_institution" in st.session_state:
                     topics_df = topics_df.sort_values(by="Count", ascending=False).reset_index(drop=True)
                     topics_df = topics_df.head(50)
                     topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
-                    custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
-                        "custom_yellow", ["#FFFFFF", "#d9bc2b", "#695806"]
+
+                    st.markdown('<p class="small-subheader">Top 50 Topics</p>', unsafe_allow_html=True)
+                    
+                    # Display as an interactive dataframe with custom formatting
+                    st.dataframe(
+                        topics_df,
+                        column_config={
+                            "Rank": st.column_config.NumberColumn(
+                                "Rank",
+                                help="Position in the top 50",
+                                format="%d"
+                            ),
+                            "Topic": st.column_config.TextColumn(
+                                "Topic",
+                                help="Research topic name"
+                            ),
+                            "Count": st.column_config.NumberColumn(
+                                "Count",
+                                help="Number of publications",
+                                format="%d"
+                            ),
+                            "Ratio": st.column_config.NumberColumn(
+                                "Ratio",
+                                help="Percentage of total publications",
+                                format="%.2f%%"
+                            )
+                        },
+                        hide_index=True,
+                        use_container_width=True
                     )
-                    styled_topics_df = topics_df.style.format({"Ratio": "{:.2f} %"}).background_gradient(
-                        subset=["Ratio"], cmap=custom_cmap, vmin=0, vmax=6
-                    ).hide(axis="index")
-                    st.markdown(styled_topics_df.to_html(), unsafe_allow_html=True)
+
                 else:
                     st.info("No topics data available.")
             else:
