@@ -556,18 +556,66 @@ if "current_institution" in st.session_state:
                 
                 topics_data = parse_topics_string(topics_str)
                 if topics_data and total_pubs_int:
+                    # Create initial dataframe
                     topics_data = [(name.strip(), count, round(count/total_pubs_int*100, 2))
                                 for name, count in topics_data]
                     topics_df = pd.DataFrame(topics_data, columns=["Topic", "Count", "Ratio"])
                     topics_df = topics_df.sort_values(by="Count", ascending=False).reset_index(drop=True)
-                    topics_df = topics_df.head(50)
-                    topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
+                    
+                    # Pad to 50 rows if needed
+                    if len(topics_df) < 50:
+                        missing = 50 - len(topics_df)
+                        pad_df = pd.DataFrame([["", 0, 0.0]] * missing, columns=["Topic", "Count", "Ratio"])
+                        topics_df = pd.concat([topics_df, pad_df], ignore_index=True)
+                    else:
+                        topics_df = topics_df.iloc[:50].reset_index(drop=True)
+                    
+                    # Split into two halves
+                    top_half = topics_df.iloc[:25].reset_index(drop=True)
+                    bottom_half = topics_df.iloc[25:50].reset_index(drop=True)
+                    
+                    # Create combined dataframe
+                    combined_topics_df = pd.DataFrame({
+                        "Rank": list(range(1, 26)),
+                        "Topic": top_half["Topic"],
+                        "Count": top_half["Count"],
+                        "Ratio": top_half["Ratio"],
+                        "Rank.": list(range(26, 51)),  # Added dot to column names
+                        "Topic.": bottom_half["Topic"],
+                        "Count.": bottom_half["Count"],
+                        "Ratio.": bottom_half["Ratio"]
+                    })
+                    
+                    # Create custom colormap from white to yellow to brown
                     custom_cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
                         "custom_yellow", ["#FFFFFF", "#d9bc2b", "#695806"]
                     )
-                    styled_topics_df = topics_df.style.format({"Ratio": "{:.2f} %"}).background_gradient(
-                        subset=["Ratio"], cmap=custom_cmap, vmin=0, vmax=6
-                    ).hide(axis="index")
+                    
+                    # Style the dataframe
+                    styled_topics_df = combined_topics_df.style\
+                        .format({
+                            "Ratio": "{:.2f} %",
+                            "Ratio.": "{:.2f} %"
+                        })\
+                        .background_gradient(
+                            subset=["Ratio", "Ratio."],
+                            cmap=custom_cmap,
+                            vmin=0,
+                            vmax=6
+                        )\
+                        .set_table_styles([
+                            {'selector': 'th', 'props': [('font-size', '11pt')]},
+                            {'selector': 'td', 'props': [('font-size', '10pt')]},
+                            # Add black color to the dots in column headers
+                            {'selector': 'th.col_heading', 'props': [('color', 'white')]},
+                        ])\
+                        .set_properties(
+                            subset=["Rank", "Rank."],
+                            **{'background-color': '#f0f2f6', 'text-align': 'center'}
+                        )\
+                        .hide(axis="index")
+                    
+                    st.markdown('<p class="small-subheader">Top 50 Topics</p>', unsafe_allow_html=True)
                     st.markdown(styled_topics_df.to_html(), unsafe_allow_html=True)
                 else:
                     st.info("No topics data available.")
