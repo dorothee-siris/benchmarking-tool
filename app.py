@@ -595,13 +595,13 @@ def run_benchmark_callback():
             'Institution',
             'Country',
             'Similar rankings (count)',
-            'Similar rankings (detail)',
             'Total publications',
-            'Similar top fields (>5%)',
-            'Similar top subfields (>3%)',
             'Similar top topics (count)',
             'Similar top topics',
-            'Similar top SDGs (>1%)'
+            'Similar top subfields (>3%)',
+            'Similar top fields (>5%)',
+            'Similar top SDGs (>1%)',
+            'Similar rankings (detail)'
         ]
         bench_df = bench_df[final_order]
         st.session_state.benchmark_df = bench_df
