@@ -865,12 +865,12 @@ if "current_institution" in st.session_state:
                         width="small"
                     ),
                     "Shared rankings (count)": st.column_config.Column(
-                        "Shared rankings\n(count)",  # Line break added
+                        "Shared rankings<br>(count)",  # Line break added
                         width="small",
                         help="Number of Scimago thematic rankings shared with the benchmarked institution in 2024"
                     ),
                     "Shared rankings (detail)": st.column_config.Column(
-                        "Shared rankings\n(detail)", # Line break added
+                        "Shared rankings<br>(detail)", # Line break added
                         width="small",
                         help="List of shared Scimago thematic rankings with rank position in each"
                     ),
