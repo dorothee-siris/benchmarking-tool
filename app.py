@@ -15,7 +15,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Add this at the top of your script, after the st.set_page_config
+# Custom CSS for buttons
 st.markdown("""
     <style>
         div.stButton > button:first-child {
@@ -31,13 +31,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Add the custom CSS at the top of your script after your other styles
+# Custom CSS for small subheaders
 st.markdown("""
     <style>
         .small-subheader {
-            font-size: 1.1rem;
+            font-size: 1.3rem;
             font-weight: 600;
-            color: rgb(49, 51, 63);
+            color: white;
             margin-bottom: 0.5rem;
         }
     </style>
@@ -487,7 +487,7 @@ if "current_institution" in st.session_state:
                     st.markdown('<p class="small-subheader">Top Fields (>5%)</p>', unsafe_allow_html=True)
                     plot_col = st.columns([2, 1])[0]
                     with plot_col:
-                        fig_fields, ax_fields = plt.subplots(figsize=(10, 6))
+                        fig_fields, ax_fields = plt.subplots(figsize=(9, 5))
                         fig_fields.set_dpi(100)
                         names_fields = [x[0] for x in fields_data]
                         percentages_fields = [x[2] for x in fields_data]
@@ -500,7 +500,7 @@ if "current_institution" in st.session_state:
                                             xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                             xytext=(3, 0), textcoords="offset points",
                                             va='center', fontsize=10)
-                        ax_fields.margins(x=0.05)
+                        ax_fields.margins(x=0.1)
                         plt.tight_layout()
                         st.pyplot(fig_fields, use_container_width=True)
                 else:
@@ -511,7 +511,7 @@ if "current_institution" in st.session_state:
                     st.markdown('<p class="small-subheader">Top Subfields (>3%)</p>', unsafe_allow_html=True)
                     plot_col = st.columns([2, 1])[0]
                     with plot_col:
-                        fig_subfields, ax_subfields = plt.subplots(figsize=(10, 8))
+                        fig_subfields, ax_subfields = plt.subplots(figsize=(9, 7))
                         fig_subfields.set_dpi(100)
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
@@ -524,6 +524,7 @@ if "current_institution" in st.session_state:
                                                 xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                                 xytext=(3, 0), textcoords="offset points",
                                                 va='center', fontsize=10)
+                        ax_subfields.margins(x=0.1)
                         plt.tight_layout()
                         st.pyplot(fig_subfields, use_container_width=True)
                 else:
@@ -534,7 +535,7 @@ if "current_institution" in st.session_state:
                     st.markdown('<p class="small-subheader">Top SDGs (>1%)</p>', unsafe_allow_html=True)
                     plot_col = st.columns([2, 1])[0]
                     with plot_col:
-                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(10, 6))
+                        fig_sdgs, ax_sdgs = plt.subplots(figsize=(9, 5))
                         fig_sdgs.set_dpi(100)
                         names_sdgs = [x[0] for x in sdg_data_labeled]
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
@@ -547,6 +548,7 @@ if "current_institution" in st.session_state:
                                             xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
                                             xytext=(3, 0), textcoords="offset points",
                                             va='center', fontsize=10)
+                        ax_sdgs.margins(x=0.1)
                         plt.tight_layout()
                         st.pyplot(fig_sdgs, use_container_width=True)
                 else:
