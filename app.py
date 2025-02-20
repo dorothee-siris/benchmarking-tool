@@ -512,37 +512,31 @@ if "current_institution" in st.session_state:
                     st.markdown('<p class="small-subheader">Top Fields (>5%)</p>', unsafe_allow_html=True)
                     plot_col = st.columns([2, 1])[0]
                     with plot_col:
-                        # Create figure with dark background
                         plt.style.use('dark_background')
                         fig_fields, ax_fields = plt.subplots(figsize=(9, 5))
                         fig_fields.set_dpi(100)
                         
-                        # Set figure background to black
-                        fig_fields.patch.set_facecolor('#000000')
-                        ax_fields.set_facecolor('#000000')
+                        # Set figure background
+                        fig_fields.patch.set_facecolor('#0E1117')
+                        ax_fields.set_facecolor('#0E1117')
                         
-                        # Plot data
                         names_fields = [x[0] for x in fields_data]
                         percentages_fields = [x[2] for x in fields_data]
                         bars = ax_fields.barh(names_fields, percentages_fields, color='#16a4d8')
                         
-                        # Style the axes and labels in white
                         ax_fields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10, color='white')
                         ax_fields.xaxis.set_major_formatter(formatter)
                         ax_fields.invert_yaxis()
                         
-                        # Style the ticks in white
                         ax_fields.tick_params(axis='both', colors='white')
                         for label in ax_fields.get_xticklabels():
                             label.set_color('white')
                         for label in ax_fields.get_yticklabels():
                             label.set_color('white')
                             
-                        # Add white spines
                         for spine in ax_fields.spines.values():
                             spine.set_color('white')
                         
-                        # Add count annotations in white
                         for bar, (_, count, _) in zip(bars, fields_data):
                             ax_fields.annotate(
                                 f"{count:,}",
@@ -557,54 +551,97 @@ if "current_institution" in st.session_state:
                         ax_fields.margins(x=0.15)
                         plt.tight_layout()
                         st.pyplot(fig_fields, use_container_width=True)
-                        
-                        # Reset to default style for other plots
-                        plt.style.use('default')
                 else:
                     st.info("No fields data >5%.")
-                
+
                 # Subfields visualization
                 if subfields_data:
                     st.markdown('<p class="small-subheader">Top Subfields (>3%)</p>', unsafe_allow_html=True)
                     plot_col = st.columns([2, 1])[0]
                     with plot_col:
+                        plt.style.use('dark_background')
                         fig_subfields, ax_subfields = plt.subplots(figsize=(9, 6))
                         fig_subfields.set_dpi(100)
+                        
+                        # Set figure background
+                        fig_subfields.patch.set_facecolor('#0E1117')
+                        ax_subfields.set_facecolor('#0E1117')
+                        
                         names_subfields = [x[0] for x in subfields_data]
                         percentages_subfields = [x[2] for x in subfields_data]
                         bars = ax_subfields.barh(names_subfields, percentages_subfields, color='#60dbe8')
-                        ax_subfields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
+                        
+                        ax_subfields.set_xlabel("Percentage of 2015-2024 publications", fontsize=10, color='white')
                         ax_subfields.xaxis.set_major_formatter(formatter)
                         ax_subfields.invert_yaxis()
+                        
+                        ax_subfields.tick_params(axis='both', colors='white')
+                        for label in ax_subfields.get_xticklabels():
+                            label.set_color('white')
+                        for label in ax_subfields.get_yticklabels():
+                            label.set_color('white')
+                            
+                        for spine in ax_subfields.spines.values():
+                            spine.set_color('white')
+                        
                         for bar, (_, count, _) in zip(bars, subfields_data):
-                            ax_subfields.annotate(f"{count:,}",
-                                                xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
-                                                xytext=(3, 0), textcoords="offset points",
-                                                va='center', fontsize=9)
+                            ax_subfields.annotate(
+                                f"{count:,}",
+                                xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                                xytext=(3, 0),
+                                textcoords="offset points",
+                                va='center',
+                                fontsize=9,
+                                color='white'
+                            )
+                            
                         ax_subfields.margins(x=0.15)
                         plt.tight_layout()
                         st.pyplot(fig_subfields, use_container_width=True)
                 else:
                     st.info("No subfields data >3%.")
-                
+
                 # SDGs visualization
                 if sdg_data_labeled:
                     st.markdown('<p class="small-subheader">Top SDGs (>1%)</p>', unsafe_allow_html=True)
                     plot_col = st.columns([2, 1])[0]
                     with plot_col:
+                        plt.style.use('dark_background')
                         fig_sdgs, ax_sdgs = plt.subplots(figsize=(9, 5))
                         fig_sdgs.set_dpi(100)
+                        
+                        # Set figure background
+                        fig_sdgs.patch.set_facecolor('#0E1117')
+                        ax_sdgs.set_facecolor('#0E1117')
+                        
                         names_sdgs = [x[0] for x in sdg_data_labeled]
                         percentages_sdgs = [x[2] for x in sdg_data_labeled]
                         bars = ax_sdgs.barh(names_sdgs, percentages_sdgs, color='#9b5fe0')
-                        ax_sdgs.set_xlabel("Percentage of 2015-2024 publications", fontsize=10)
+                        
+                        ax_sdgs.set_xlabel("Percentage of 2015-2024 publications", fontsize=10, color='white')
                         ax_sdgs.xaxis.set_major_formatter(formatter)
                         ax_sdgs.invert_yaxis()
+                        
+                        ax_sdgs.tick_params(axis='both', colors='white')
+                        for label in ax_sdgs.get_xticklabels():
+                            label.set_color('white')
+                        for label in ax_sdgs.get_yticklabels():
+                            label.set_color('white')
+                            
+                        for spine in ax_sdgs.spines.values():
+                            spine.set_color('white')
+                        
                         for bar, (_, count, _) in zip(bars, sdg_data_labeled):
-                            ax_sdgs.annotate(f"{count:,}",
-                                            xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
-                                            xytext=(3, 0), textcoords="offset points",
-                                            va='center', fontsize=9)
+                            ax_sdgs.annotate(
+                                f"{count:,}",
+                                xy=(bar.get_width(), bar.get_y() + bar.get_height()/2),
+                                xytext=(3, 0),
+                                textcoords="offset points",
+                                va='center',
+                                fontsize=9,
+                                color='white'
+                            )
+                            
                         ax_sdgs.margins(x=0.15)
                         plt.tight_layout()
                         st.pyplot(fig_sdgs, use_container_width=True)
