@@ -698,10 +698,14 @@ if "current_institution" in st.session_state:
 
                         # Put the download button in the same column
                         csv = topics_df.to_csv(index=False)
+
+                        # Clean institution name for filename (remove special characters)
+                        clean_institution_name = "".join(c for c in institution_name if c.isalnum() or c in (' ', '-', '_')).strip()
+
                         st.download_button(
                             label="Download topics as CSV",
                             data=csv,
-                            file_name="top_50_topics.csv",
+                            file_name=f"top_50_topics_{clean_institution_name}.csv",
                             mime="text/csv",
                         )
                         st.markdown('<hr style="border: 1px solid #ef476f;">', unsafe_allow_html=True)
