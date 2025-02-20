@@ -147,7 +147,7 @@ def color_scale(val):
     
     # Convert to hex color
     hex_color = '#%02x%02x%02x' % tuple(color.astype(int))
-    return f"background-color: {hex_color}"
+    return f"background-color: {hex_color}; color: black"
 
 # ---------------------------
 # Heatmap Styling Function
@@ -618,16 +618,7 @@ if "current_institution" in st.session_state:
                             )
                         },
                         hide_index=True,
-                        use_container_width=True
-                    )
-
-                    # Add download button for CSV
-                    csv = topics_df.to_csv(index=False)
-                    st.download_button(
-                        label="Download topics as CSV",
-                        data=csv,
-                        file_name="top_50_topics.csv",
-                        mime="text/csv",
+                        use_container_width=False
                     )
                 else:
                     st.info("No topics data available.")
