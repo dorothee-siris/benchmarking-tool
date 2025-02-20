@@ -580,7 +580,7 @@ if "current_institution" in st.session_state:
                         "Topic": top_half["Topic"],
                         "Count": top_half["Count"],
                         "Ratio": top_half["Ratio"],
-                        "Sep": ["." for _ in range(25)],  # Separator column
+                        "i": ["." for _ in range(25)],  # Separator column
                         "Rank.": list(range(26, 51)),
                         "Topic.": bottom_half["Topic"],
                         "Count.": bottom_half["Count"],
@@ -625,12 +625,12 @@ if "current_institution" in st.session_state:
                             }
                         )\
                         .set_properties(
-                            subset=["Sep"],
+                            subset=["i"],
                             **{
                                 'background-color': 'white',
                                 'color': 'white',
                                 'text-align': 'center',
-                                'width': '20px'
+                                'width': '10px'
                             }
                         )\
                         .hide(axis="index")
