@@ -615,4 +615,44 @@ st.button("Run Benchmark", on_click=run_benchmark_callback)
 # ---------------------------
 if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not None:
     st.markdown("<h3>Benchmarking Results</h3>", unsafe_allow_html=True)
-    st.dataframe(st.session_state.benchmark_df, use_container_width=True)
+    st.dataframe(
+        st.session_state.benchmark_df,
+        use_container_width=True,
+        column_config={
+            "Institution": st.column_config.Column(
+                width="medium"
+            ),
+            "Country": st.column_config.Column(
+                width="small"
+            ),
+            "Similar rankings (count)": st.column_config.Column(
+                width="small",
+                help="Number of shared rankings"
+            ),
+            "Similar rankings (detail)": st.column_config.Column(
+                width="small"
+            ),
+            "Total publications": st.column_config.Column(
+                width="small"
+            ),
+            "Similar top fields (>5%)": st.column_config.Column(
+                "Top Fields\n(>5%)",  # Line break in header
+                width="small"
+            ),
+            "Similar top subfields (>3%)": st.column_config.Column(
+                "Top Subfields\n(>3%)",
+                width="small"
+            ),
+            "Similar top topics (count)": st.column_config.Column(
+                "Topics\nCount",
+                width="small"
+            ),
+            "Similar top topics": st.column_config.Column(
+                width="medium"
+            ),
+            "Similar top SDGs (>1%)": st.column_config.Column(
+                "Top SDGs\n(>1%)",
+                width="small"
+            )
+        }
+    )
