@@ -20,8 +20,25 @@ st.markdown("""
     <style>
         div.stButton > button:first-child {
             background-color: #ef476f;
-            color: white;
+            color: white !important;  /* Force white color */
             font-weight: bold;
+        }
+        div.stButton > button:first-child:hover {
+            background-color: #d03d61;
+            color: white !important;
+            font-weight: bold;
+        }
+        /* Add styles for clicked state */
+        div.stButton > button:first-child:active, 
+        div.stButton > button:first-child:focus {
+            background-color: #d03d61;
+            color: white !important;
+            font-weight: bold;
+            border-color: transparent;
+        }
+        /* Add styles for visited state */
+        div.stButton > button:first-child:visited {
+            color: white !important;
         }
     </style>
 """, unsafe_allow_html=True)
