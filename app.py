@@ -437,6 +437,7 @@ if "current_institution" in st.session_state:
                 ", ".join(summary_parts) + ".",
                 unsafe_allow_html=True
             )
+            st.markdown('<hr style="border: 2px solid #ef476f;">', unsafe_allow_html=True)
             # Store the number of appearances in 2024 rankings:
             st.session_state.target_appearances = summary_counts[2024]
 
@@ -657,47 +658,51 @@ if "current_institution" in st.session_state:
                     topics_df = topics_df.head(50)
                     topics_df.insert(0, "Rank", range(1, len(topics_df)+1))
 
-                    st.markdown('<p class="small-subheader">Top 50 Topics</p>', unsafe_allow_html=True)
-                    
-                    # Apply styling with the color_scale function
-                    styled_df = topics_df.style.applymap(color_scale, subset=['Ratio'])
-                    
-                    # Display as an interactive dataframe
-                    st.dataframe(
-                        styled_df,
-                        column_config={
-                            "Rank": st.column_config.NumberColumn(
-                                "Rank",
-                                help="Position in the top 50",
-                                format="%d"
-                            ),
-                            "Topic": st.column_config.TextColumn(
-                                "Topic",
-                                help="Research topic name"
-                            ),
-                            "Count": st.column_config.NumberColumn(
-                                "Count",
-                                help="Number of publications",
-                                format="%d"
-                            ),
-                            "Ratio": st.column_config.NumberColumn(
-                                "Ratio",
-                                help="Percentage of total publications",
-                                format="%.2f%%"
-                            )
-                        },
-                        hide_index=True,
-                        use_container_width=False
-                    )
+                    # Create a column container that takes up about 2/3 of the page width
+                    col1, col2 = st.columns([2, 1])  # Creates a 2:1 ratio, so first column takes up 2/3 of space
 
-                    # Add download button for CSV
-                    csv = topics_df.to_csv(index=False)
-                    st.download_button(
-                        label="Download topics as CSV",
-                        data=csv,
-                        file_name=f"top_50_topics_{institution_name}.csv",
-                        mime="text/csv",
-                    )
+                    with col1:
+                        st.markdown('<p class="small-subheader">Top 50 Topics</p>', unsafe_allow_html=True)
+                        
+                        # Apply styling with the updated color_scale function that includes black text
+                        styled_df = topics_df.style.applymap(color_scale, subset=['Ratio'])
+                        
+                        # Display dataframe - now it will fill the column width instead of full page width
+                        st.dataframe(
+                            styled_df,
+                            column_config={
+                                "Rank": st.column_config.NumberColumn(
+                                    "Rank",
+                                    help="Position in the top 50",
+                                    format="%d"
+                                ),
+                                "Topic": st.column_config.TextColumn(
+                                    "Topic",
+                                    help="Research topic name"
+                                ),
+                                "Count": st.column_config.NumberColumn(
+                                    "Count",
+                                    help="Number of publications",
+                                    format="%d"
+                                ),
+                                "Ratio": st.column_config.NumberColumn(
+                                    "Ratio",
+                                    help="Percentage of total publications",
+                                    format="%.2f%%"
+                                )
+                            },
+                            hide_index=True,
+                            use_container_width=True  # This will now fill the column instead of the full page
+                        )
+
+                        # Put the download button in the same column
+                        csv = topics_df.to_csv(index=False)
+                        st.download_button(
+                            label="Download topics as CSV",
+                            data=csv,
+                            file_name="top_50_topics.csv",
+                            mime="text/csv",
+                        )
                 else:
                     st.info("No topics data available.")
             else:
