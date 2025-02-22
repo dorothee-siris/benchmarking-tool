@@ -879,6 +879,7 @@ if "current_institution" in st.session_state:
                     (bench_df['Total publications'] <= st.session_state.max_pubs)
                 ].reset_index(drop=True)
                 
+                # Apply country filters before dropping the Country code column
                 if st.session_state.europe_only:
                     eur_countries = [
                         'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BLR', 'BGR', 'CHE',
@@ -887,17 +888,14 @@ if "current_institution" in st.session_state:
                         'LUX', 'LVA', 'MCO', 'MDA', 'MKD', 'MLT', 'MNE', 'NLD', 'NOR', 'POL',
                         'PRT', 'ROU', 'SMR', 'SRB', 'SVK', 'SVN', 'SWE', 'TUR', 'UKR', 'VAT'
                     ]
-                    bench_df = bench_df[bench_df['Country code'].isin(eur_countries)].reset_index(drop=True)
+                    bench_df = bench_df[bench_df['Scimago_country_code'].isin(eur_countries)].reset_index(drop=True)
                 
                 if st.session_state.exclude_target_country:
                     target_country_code = st.session_state.current_institution[1]
-                    bench_df = bench_df[bench_df['Country code'] != target_country_code].reset_index(drop=True)
+                    bench_df = bench_df[bench_df['Scimago_country_code'] != target_country_code].reset_index(drop=True)
                 
                 bench_df = bench_df.reset_index(drop=True)
                 bench_df.index = range(1, len(bench_df)+1)
-                
-                # Drop the "Country code" column
-                bench_df = bench_df.drop(columns=['Country code'])
                 
                 # Reorder columns
                 final_order = [
