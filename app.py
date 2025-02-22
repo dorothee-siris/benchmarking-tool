@@ -363,24 +363,24 @@ def run_benchmark(target_key, rank_range, min_appearances):
     # Remove duplicate columns (if any) before reindexing
     final_df = final_df.loc[:, ~final_df.columns.duplicated()]
     
+    # In run_benchmark, reorder before renaming
     expected_cols = [
         'ROR_name', 
-        'Scimago_country_code', 
-        'Scimago_country_name', 
+        'ROR_country',
         'appearances', 
-        'ranking_detail', 
         'Total_Publications',
-        'similar_fields', 
-        'similar_subfields', 
-        'similar_topics_count', 
+        'similar_topics_count',
         'similar_topics_details',
-        'similar_sdgs'
+        'similar_subfields',
+        'similar_fields',
+        'similar_sdgs',
+        'ranking_detail'
     ]
     final_df = final_df.reindex(columns=expected_cols)
     
+    # Then do the renaming
     final_df = final_df.rename(columns={
         'ROR_name': 'Institution',
-        'Scimago_country_code': 'Country code',
         'ROR_country': 'Country',
         'appearances': 'Shared rankings (count)',
         'ranking_detail': 'Shared rankings (detail)',
