@@ -360,6 +360,9 @@ def run_benchmark(target_key, rank_range, min_appearances):
     similar_metrics = merged.apply(compute_similar, axis=1)
     final_df = pd.concat([merged, similar_metrics], axis=1)
     
+    # Remove duplicate columns (if any) before reindexing
+    final_df = final_df.loc[:, ~final_df.columns.duplicated()]
+    
     expected_cols = [
         'ROR_name', 
         'Scimago_country_code', 
