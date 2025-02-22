@@ -360,10 +360,10 @@ def run_benchmark(target_key, rank_range, min_appearances):
     similar_metrics = merged.apply(compute_similar, axis=1)
     final_df = pd.concat([merged, similar_metrics], axis=1)
     
-    final_df = final_df[[ 
+    expected_cols = [
         'ROR_name', 
         'Scimago_country_code', 
-        'ROR_country',
+        'Scimago_country_name', 
         'appearances', 
         'ranking_detail', 
         'Total_Publications',
@@ -372,7 +372,8 @@ def run_benchmark(target_key, rank_range, min_appearances):
         'similar_topics_count', 
         'similar_topics_details',
         'similar_sdgs'
-    ]]
+    ]
+    final_df = final_df.reindex(columns=expected_cols)
     
     final_df = final_df.rename(columns={
         'ROR_name': 'Institution',
