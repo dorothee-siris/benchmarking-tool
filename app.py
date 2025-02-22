@@ -93,6 +93,15 @@ sdg_variants = {
     "industry and innovations": 9,
 }
 
+#definition of European countries
+eur_countries = [
+                        'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BLR', 'BGR', 'CHE',
+                        'CYP', 'CZE', 'DEU', 'DNK', 'ESP', 'EST', 'FIN', 'FRA','GBR', 'GEO',
+                        'GRC', 'HRV', 'HUN', 'IRL', 'ISL', 'ITA', 'KAZ', 'KOS', 'LIE', 'LTU',
+                        'LUX', 'LVA', 'MCO', 'MDA', 'MKD', 'MLT', 'MNE', 'NLD', 'NOR', 'POL',
+                        'PRT', 'ROU', 'SMR', 'SRB', 'SVK', 'SVN', 'SWE', 'TUR', 'UKR', 'VAT'
+                    ]
+
 def normalize_sdg_key(s):
     return " ".join("".join(ch for ch in s.lower() if ch.isalnum() or ch==" ").split())
 
@@ -367,6 +376,7 @@ def run_benchmark(target_key, rank_range, min_appearances):
     expected_cols = [
         'ROR_name', 
         'ROR_country',
+        'Scimago_country_code',  # Keep this for filtering
         'appearances', 
         'Total_Publications',
         'similar_topics_count',
@@ -879,20 +889,16 @@ if "current_institution" in st.session_state:
                     (bench_df['Total publications'] <= st.session_state.max_pubs)
                 ].reset_index(drop=True)
                 
-                # Apply country filters before dropping the Country code column
+                # Apply country filters while we still have the country code
                 if st.session_state.europe_only:
-                    eur_countries = [
-                        'ALB', 'AND', 'ARM', 'AUT', 'AZE', 'BEL', 'BIH', 'BLR', 'BGR', 'CHE',
-                        'CYP', 'CZE', 'DEU', 'DNK', 'ESP', 'EST', 'FIN', 'FRA','GBR', 'GEO',
-                        'GRC', 'HRV', 'HUN', 'IRL', 'ISL', 'ITA', 'KAZ', 'KOS', 'LIE', 'LTU',
-                        'LUX', 'LVA', 'MCO', 'MDA', 'MKD', 'MLT', 'MNE', 'NLD', 'NOR', 'POL',
-                        'PRT', 'ROU', 'SMR', 'SRB', 'SVK', 'SVN', 'SWE', 'TUR', 'UKR', 'VAT'
-                    ]
                     bench_df = bench_df[bench_df['Scimago_country_code'].isin(eur_countries)].reset_index(drop=True)
                 
                 if st.session_state.exclude_target_country:
                     target_country_code = st.session_state.current_institution[1]
                     bench_df = bench_df[bench_df['Scimago_country_code'] != target_country_code].reset_index(drop=True)
+
+                # Now we can drop the country code column as it's no longer needed
+                bench_df = bench_df.drop(columns=['Scimago_country_code'])
                 
                 bench_df = bench_df.reset_index(drop=True)
                 bench_df.index = range(1, len(bench_df)+1)
