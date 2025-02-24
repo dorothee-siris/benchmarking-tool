@@ -941,7 +941,7 @@ if "current_institution" in st.session_state:
 
             # Add count summary
             result_count = len(st.session_state.benchmark_df_raw)
-            st.markdown(f"{result_count} similar institution{'s' if result_count != 1 else ''} found.", unsafe_allow_html=True)
+            st.markdown(f'<span><span style="color: #ef476f">{result_count}</span> similar institution{"s" if result_count != 1 else ""} found.</span>', unsafe_allow_html=True)
 
             st.dataframe(
                 st.session_state.benchmark_df,
