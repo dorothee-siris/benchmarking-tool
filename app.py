@@ -992,7 +992,14 @@ if "current_institution" in st.session_state:
             if "benchmark_df_raw" in st.session_state and st.session_state.benchmark_df_raw is not None:
                 # Prepare CSV download with proper encoding
                 inst_name = st.session_state.current_institution[0]
-                inst_country = st.session_state.current_institution[2]
+                inst_country_code = st.session_state.current_institution[1]
+                
+                # Get the country name from df_enriched using the country code
+                inst_country = df_enriched[
+                    (df_enriched['Institution'] == inst_name) & 
+                    (df_enriched['Scimago_country_code'] == inst_country_code)
+                ]['ROR_country'].iloc[0]
+                
                 safe_inst_name = re.sub(r'[^A-Za-z0-9_\-]+', '_', inst_name.strip())
                 
                 # Create a copy of the dataframe for CSV export
@@ -1018,16 +1025,3 @@ if "current_institution" in st.session_state:
                 export_df.loc[len(export_df) + 4] = [f"{result_count} institutions {geography_text} ({country_text}),"] + [""] * (len(export_df.columns) - 1)
                 export_df.loc[len(export_df) + 5] = [f"with between {min_pubs_formatted} and {max_pubs_formatted} publications from 2015 to 2024,"] + [""] * (len(export_df.columns) - 1)
                 export_df.loc[len(export_df) + 6] = [f"sharing at least {st.session_state.min_appearances} Scimago thematic rankings with {inst_name} and ranking within ±{st.session_state.rank_range} in each."] + [""] * (len(export_df.columns) - 1)
-                
-                # Convert to CSV with utf-8-sig encoding
-                csv_data = export_df.to_csv(index=False, encoding='utf-8-sig')
-                
-                # Convert to bytes
-                csv_bytes = csv_data.encode('utf-8-sig')
-                
-                st.download_button(
-                    label="Download benchmark results as CSV",
-                    data=csv_bytes,
-                    file_name=f"benchmark_results_{safe_inst_name}.csv",
-                    mime="text/csv",
-                )
