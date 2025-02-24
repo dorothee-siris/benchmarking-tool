@@ -938,6 +938,11 @@ if "current_institution" in st.session_state:
         # ---------------------------
         if "benchmark_df" in st.session_state and st.session_state.benchmark_df is not None:
             st.markdown("<h3>Benchmarking Results</h3>", unsafe_allow_html=True)
+
+            # Add count summary
+            result_count = len(st.session_state.benchmark_df_raw)
+            st.markdown(f"{result_count} similar institution{'s' if result_count != 1 else ''} found.", unsafe_allow_html=True)
+
             st.dataframe(
                 st.session_state.benchmark_df,
                 use_container_width=True,
@@ -984,14 +989,24 @@ if "current_institution" in st.session_state:
                 }
             )
 
-            # Only try to create and show download button if we have data
             if "benchmark_df_raw" in st.session_state and st.session_state.benchmark_df_raw is not None:
                 # Prepare CSV download with proper encoding
                 inst_name = st.session_state.current_institution[0]
                 safe_inst_name = re.sub(r'[^A-Za-z0-9_\-]+', '_', inst_name.strip())
                 
+                # Create a copy of the dataframe for CSV export
+                export_df = st.session_state.benchmark_df_raw.copy()
+                
+                # Add empty rows and parameters summary
+                export_df.loc[len(export_df) + 2] = [""] * len(export_df.columns)  # Add empty row
+                summary_text = (f"Results: {len(export_df)-1} institutions with between {st.session_state.min_pubs} and "
+                            f"{st.session_state.max_pubs} publications from 2015 to 2024, sharing at least "
+                            f"{st.session_state.min_appearances} Scimago thematic rankings with the benchmarked "
+                            f"institution and ranking within ±{st.session_state.rank_range} in each.")
+                export_df.loc[len(export_df) + 1] = [summary_text] + [""] * (len(export_df.columns) - 1)
+                
                 # Convert to CSV with utf-8-sig encoding
-                csv_data = st.session_state.benchmark_df_raw.to_csv(index=False, encoding='utf-8-sig')
+                csv_data = export_df.to_csv(index=False, encoding='utf-8-sig')
                 
                 # Convert to bytes
                 csv_bytes = csv_data.encode('utf-8-sig')
