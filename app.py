@@ -992,6 +992,7 @@ if "current_institution" in st.session_state:
             if "benchmark_df_raw" in st.session_state and st.session_state.benchmark_df_raw is not None:
                 # Prepare CSV download with proper encoding
                 inst_name = st.session_state.current_institution[0]
+                inst_country = st.session_state.current_institution[1]
                 safe_inst_name = re.sub(r'[^A-Za-z0-9_\-]+', '_', inst_name.strip())
                 
                 # Create a copy of the dataframe for CSV export
@@ -1002,7 +1003,7 @@ if "current_institution" in st.session_state:
                 
                 # Determine geography and country inclusion text
                 geography_text = "from Europe" if st.session_state.europe_only else "across the world"
-                country_text = "excluding" if st.session_state.exclude_target_country else "including"
+                country_text = f"excluding {inst_country}" if st.session_state.exclude_target_country else f"including {inst_country}"
                 
                 # Format publication numbers with thousand separators
                 min_pubs_formatted = "{:,}".format(st.session_state.min_pubs)
@@ -1010,12 +1011,13 @@ if "current_institution" in st.session_state:
                 
                 # Add separator row with "-"
                 export_df.loc[len(export_df) + 1] = [" "] * len(export_df.columns)
+                export_df.loc[len(export_df) + 2] = [" "] * len(export_df.columns)
                 
                 # Add multi-line summary
-                export_df.loc[len(export_df) + 2] = ["Results:"] + [""] * (len(export_df.columns) - 1)
-                export_df.loc[len(export_df) + 3] = [f"{result_count} institutions {geography_text} ({country_text} the benchmarked institution's country),"] + [""] * (len(export_df.columns) - 1)
-                export_df.loc[len(export_df) + 4] = [f"with between {min_pubs_formatted} and {max_pubs_formatted} publications from 2015 to 2024,"] + [""] * (len(export_df.columns) - 1)
-                export_df.loc[len(export_df) + 5] = [f"sharing at least {st.session_state.min_appearances} Scimago thematic rankings with the benchmarked institution and ranking within ±{st.session_state.rank_range} in each."] + [""] * (len(export_df.columns) - 1)
+                export_df.loc[len(export_df) + 3] = ["Results:"] + [""] * (len(export_df.columns) - 1)
+                export_df.loc[len(export_df) + 4] = [f"{result_count} institutions {geography_text} ({country_text}),"] + [""] * (len(export_df.columns) - 1)
+                export_df.loc[len(export_df) + 5] = [f"with between {min_pubs_formatted} and {max_pubs_formatted} publications from 2015 to 2024,"] + [""] * (len(export_df.columns) - 1)
+                export_df.loc[len(export_df) + 6] = [f"sharing at least {st.session_state.min_appearances} Scimago thematic rankings with {inst_name} and ranking within ±{st.session_state.rank_range} in each."] + [""] * (len(export_df.columns) - 1)
                 
                 # Convert to CSV with utf-8-sig encoding
                 csv_data = export_df.to_csv(index=False, encoding='utf-8-sig')
