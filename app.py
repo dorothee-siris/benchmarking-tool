@@ -992,7 +992,7 @@ if "current_institution" in st.session_state:
             if "benchmark_df_raw" in st.session_state and st.session_state.benchmark_df_raw is not None:
                 # Prepare CSV download with proper encoding
                 inst_name = st.session_state.current_institution[0]
-                inst_country = st.session_state.current_institution[1]
+                inst_country = st.session_state.current_institution[2]
                 safe_inst_name = re.sub(r'[^A-Za-z0-9_\-]+', '_', inst_name.strip())
                 
                 # Create a copy of the dataframe for CSV export
