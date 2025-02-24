@@ -997,13 +997,25 @@ if "current_institution" in st.session_state:
                 # Create a copy of the dataframe for CSV export
                 export_df = st.session_state.benchmark_df_raw.copy()
                 
-                # Add empty rows and parameters summary
-                export_df.loc[len(export_df) + 2] = [""] * len(export_df.columns)  # Add empty row
-                summary_text = (f"Results: {len(export_df)-1} institutions with between {st.session_state.min_pubs} and "
-                            f"{st.session_state.max_pubs} publications from 2015 to 2024, sharing at least "
-                            f"{st.session_state.min_appearances} Scimago thematic rankings with the benchmarked "
-                            f"institution and ranking within ±{st.session_state.rank_range} in each.")
-                export_df.loc[len(export_df) + 1] = [summary_text] + [""] * (len(export_df.columns) - 1)
+                # Get row count (excluding the empty row we'll add)
+                result_count = len(export_df)
+                
+                # Determine geography and country inclusion text
+                geography_text = "from Europe" if st.session_state.europe_only else "across the world"
+                country_text = "excluding" if st.session_state.exclude_target_country else "including"
+                
+                # Format publication numbers with thousand separators
+                min_pubs_formatted = "{:,}".format(st.session_state.min_pubs)
+                max_pubs_formatted = "{:,}".format(st.session_state.max_pubs)
+                
+                # Add separator row with "-"
+                export_df.loc[len(export_df) + 1] = [" "] * len(export_df.columns)
+                
+                # Add multi-line summary
+                export_df.loc[len(export_df) + 2] = ["Results:"] + [""] * (len(export_df.columns) - 1)
+                export_df.loc[len(export_df) + 3] = [f"{result_count} institutions {geography_text} ({country_text} the benchmarked institution's country),"] + [""] * (len(export_df.columns) - 1)
+                export_df.loc[len(export_df) + 4] = [f"with between {min_pubs_formatted} and {max_pubs_formatted} publications from 2015 to 2024,"] + [""] * (len(export_df.columns) - 1)
+                export_df.loc[len(export_df) + 5] = [f"sharing at least {st.session_state.min_appearances} Scimago thematic rankings with the benchmarked institution and ranking within ±{st.session_state.rank_range} in each."] + [""] * (len(export_df.columns) - 1)
                 
                 # Convert to CSV with utf-8-sig encoding
                 csv_data = export_df.to_csv(index=False, encoding='utf-8-sig')
