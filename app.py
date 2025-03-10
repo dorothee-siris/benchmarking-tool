@@ -60,8 +60,8 @@ st.markdown("""
 # ---------------------------
 @st.cache_data
 def load_data():
-    df_master = pd.read_csv("data/Scimago_results_2021_2024.parquet")
-    df_enriched = pd.read_csv("data/unique_institutions_enriched.parquet")
+    df_master = pd.read_parquet("data/Scimago_results_2021_2024.parquet")
+    df_enriched = pd.read_parquet("data/unique_institutions_enriched.parquet")
     return df_master, df_enriched
 
 df_master, df_enriched = load_data()
