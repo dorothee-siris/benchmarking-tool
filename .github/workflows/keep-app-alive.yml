@@ -29,10 +29,5 @@ jobs:
     - name: Run ping script
       run: python ping_bot.py
       
-    - name: Upload logs as artifact if there's an error
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: ping-logs
-        path: ping_bot.log
-        retention-days: 7
+    # Removing the problematic upload-artifact step since it's causing issues
+    # We can add it back later with a different version if needed
