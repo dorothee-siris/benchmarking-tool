@@ -228,22 +228,22 @@ def find_institution():
         st.session_state.matches = matches
         st.success(f"Found {len(matches)} match(es). Please select one below.")
 
-def trigger_first_institution():
-    # Automatically select the first institution when Enter is pressed on the dummy input
-    if "matches" in st.session_state and st.session_state.matches:
-        # Select the first institution
-        first_institution = st.session_state.matches[0]
-        st.session_state.current_institution = first_institution[1]
-        display_institution_results()
-
-def display_institution_results():
-    if not st.session_state.get('matches'):
+def handle_institution_selection():
+    # Check if matches exist in session state
+    if "matches" not in st.session_state or not st.session_state.matches:
         st.error("No institutions found.")
         return
     
-    # If no specific institution is selected, use the first one
-    if 'current_institution' not in st.session_state:
-        st.session_state.current_institution = st.session_state.matches[0][1]
+    # Find the selected institution tuple
+    if "matches_dropdown" in st.session_state:
+        selected_label = st.session_state.matches_dropdown
+        selected_tuple = next((tup for label, tup in st.session_state.matches if label == selected_label), None)
+        
+        if selected_tuple:
+            # Set the current institution
+            st.session_state.current_institution = selected_tuple
+        else:
+            st.error("Unable to find the selected institution.")
 
 # ---------------------------
 # Heatmap Styling Function
@@ -502,15 +502,17 @@ if find_button:
             st.success(f"Found {len(matches)} match(es). Please select one below.")
 
 if "matches" in st.session_state:
-    # Add a hidden input to capture the Enter key press
-    st.text_input("", key="dummy_input", label_visibility="collapsed", 
-                  on_change=trigger_first_institution)
-    
-    selected_label = st.selectbox("Select Institution", [m[0] for m in st.session_state.matches], key="matches_dropdown")
-    selected_tuple = next((tup for label, tup in st.session_state.matches if label == selected_label), None)
-    
-    # Display Results button with modified behavior
-    display_results = st.button("Display Results", on_click=display_institution_results)
+    # Add key to the selectbox to track its value and enable enter key
+    selected_label = st.selectbox(
+        "Select Institution", 
+        [m[0] for m in st.session_state.matches], 
+        key="matches_dropdown",
+        # Use on_change to handle Enter key
+        on_change=handle_institution_selection
+    )
+
+    # Optional explicit button if needed
+    display_results = st.button("Display Results", on_click=handle_institution_selection)
 
 # Always display first results if an institution has been chosen.
 if "current_institution" in st.session_state:
