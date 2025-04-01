@@ -207,6 +207,27 @@ def color_topics_count(val):
     
     return f"background-color: {colors[0]}; color: black"
 
+# Allowing 2-method validation
+def find_institution():
+    # This function will be called when Enter is pressed or button is clicked
+    search_term = st.session_state.institution_search_input.strip().lower()
+    if not search_term:
+        st.warning("Please enter a non-empty search string.")
+        return
+    
+    matches = [
+        (f"{row['Institution']} ({row['Scimago_country_code']})",
+         (row['Institution'], row['Scimago_country_code']))
+        for _, row in df_enriched.iterrows()
+        if search_term in row['Institution'].lower()
+    ]
+    
+    if not matches:
+        st.info(f"No institutions found containing '{search_term}'.")
+    else:
+        st.session_state.matches = matches
+        st.success(f"Found {len(matches)} match(es). Please select one below.")
+
 # ---------------------------
 # Heatmap Styling Function
 # ---------------------------
@@ -435,10 +456,16 @@ st.markdown("""
 
 col1, col2 = st.columns([1, 3])
 with col1:
-    search_str = st.text_input("", placeholder="Enter partial institution name", key="search_str")
+    # Add a key to the text input to track its value
+    search_str = st.text_input("", 
+                                placeholder="Enter partial institution name", 
+                                key="institution_search_input", 
+                                # Add on_change to handle Enter key press
+                                on_change=find_institution)
+
 with col2:
     st.markdown('<div style="margin-top: 27px;"></div>', unsafe_allow_html=True)  # Add spacing
-    find_button = st.button("Find Your Institution")
+    find_button = st.button("Find Your Institution", on_click=find_institution)
 
 if find_button:
     search_term = search_str.strip().lower()
