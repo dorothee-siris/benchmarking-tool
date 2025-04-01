@@ -240,6 +240,12 @@ def handle_institution_selection():
         selected_tuple = next((tup for label, tup in st.session_state.matches if label == selected_label), None)
         
         if selected_tuple:
+            # Clear any previous benchmark results
+            if 'benchmark_df' in st.session_state:
+                del st.session_state.benchmark_df
+            if 'benchmark_df_raw' in st.session_state:
+                del st.session_state.benchmark_df_raw
+            
             # Set the current institution
             st.session_state.current_institution = selected_tuple
         else:
@@ -507,12 +513,9 @@ if "matches" in st.session_state:
         "Select Institution", 
         [m[0] for m in st.session_state.matches], 
         key="matches_dropdown",
-        # Use on_change to handle Enter key
+        # Use on_change to handle selection and clear previous benchmark results
         on_change=handle_institution_selection
     )
-
-    # Optional explicit button if needed
-    display_results = st.button("Display Results", on_click=handle_institution_selection)
 
 # Always display first results if an institution has been chosen.
 if "current_institution" in st.session_state:
