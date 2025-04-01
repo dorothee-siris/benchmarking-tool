@@ -228,6 +228,23 @@ def find_institution():
         st.session_state.matches = matches
         st.success(f"Found {len(matches)} match(es). Please select one below.")
 
+def trigger_first_institution():
+    # Automatically select the first institution when Enter is pressed on the dummy input
+    if "matches" in st.session_state and st.session_state.matches:
+        # Select the first institution
+        first_institution = st.session_state.matches[0]
+        st.session_state.current_institution = first_institution[1]
+        display_institution_results()
+
+def display_institution_results():
+    if not st.session_state.get('matches'):
+        st.error("No institutions found.")
+        return
+    
+    # If no specific institution is selected, use the first one
+    if 'current_institution' not in st.session_state:
+        st.session_state.current_institution = st.session_state.matches[0][1]
+
 # ---------------------------
 # Heatmap Styling Function
 # ---------------------------
@@ -485,13 +502,15 @@ if find_button:
             st.success(f"Found {len(matches)} match(es). Please select one below.")
 
 if "matches" in st.session_state:
+    # Add a hidden input to capture the Enter key press
+    st.text_input("", key="dummy_input", label_visibility="collapsed", 
+                  on_change=trigger_first_institution)
+    
     selected_label = st.selectbox("Select Institution", [m[0] for m in st.session_state.matches], key="matches_dropdown")
     selected_tuple = next((tup for label, tup in st.session_state.matches if label == selected_label), None)
-    if st.button("Display Results"):
-        if not selected_tuple:
-            st.error("No institution selected.")
-        else:
-            st.session_state.current_institution = selected_tuple
+    
+    # Display Results button with modified behavior
+    display_results = st.button("Display Results", on_click=display_institution_results)
 
 # Always display first results if an institution has been chosen.
 if "current_institution" in st.session_state:
