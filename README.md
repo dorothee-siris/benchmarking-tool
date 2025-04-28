@@ -1,10 +1,10 @@
-# Institution Analysis Dashboard
+# BenchUp: Benchmarking Tool
 
-A Streamlit application for analyzing institutional data.
+**BenchUp** is a Streamlit-based web application that helps users benchmark research institutions using Scimago rankings and OpenAlex data.  
+It identifies institutions that are similar based on shared thematic rankings, research topics, fields, subfields, and SDGs.
 
-## Setup
-1. Install requirements:
-pip install -r requirements.txt
-
-2. Run the app:
-streamlit run app.py
+## Features
+- Search for institutions based on Scimago results.
+- Visualize top fields, subfields, topics, and SDGs.
+- Find similar institutions based on customizable ranking distance and minimum publication thresholds.
+- Download benchmark results as CSV.

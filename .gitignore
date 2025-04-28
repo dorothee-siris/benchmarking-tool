@@ -1,4 +1,28 @@
+# Ignore Python cache files
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+
+# Ignore Jupyter notebooks checkpoints if ever used
+.ipynb_checkpoints/
+
+# Ignore OS files
 .DS_Store
-.env
+Thumbs.db
+
+# Ignore environments
+.env/
+.venv/
+
+# Ignore old CSVs if any
+*.csv
+
+# Ignore VSCode settings (optional, but common)
+.vscode/
+
+# Ignore Streamlit's cache folders
+.streamlit/
+
+# Ignore data backups
+*.bak

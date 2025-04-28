@@ -207,50 +207,6 @@ def color_topics_count(val):
     
     return f"background-color: {colors[0]}; color: black"
 
-# Allowing 2-method validation
-def find_institution():
-    # This function will be called when Enter is pressed or button is clicked
-    search_term = st.session_state.institution_search_input.strip().lower()
-    if not search_term:
-        st.warning("Please enter a non-empty search string.")
-        return
-    
-    matches = [
-        (f"{row['Institution']} ({row['Scimago_country_code']})",
-         (row['Institution'], row['Scimago_country_code']))
-        for _, row in df_enriched.iterrows()
-        if search_term in row['Institution'].lower()
-    ]
-    
-    if not matches:
-        st.info(f"No institutions found containing '{search_term}'.")
-    else:
-        st.session_state.matches = matches
-        st.success(f"Found {len(matches)} match(es). Please select one below.")
-
-def handle_institution_selection():
-    # Check if matches exist in session state
-    if "matches" not in st.session_state or not st.session_state.matches:
-        st.error("No institutions found.")
-        return
-    
-    # Find the selected institution tuple
-    if "matches_dropdown" in st.session_state:
-        selected_label = st.session_state.matches_dropdown
-        selected_tuple = next((tup for label, tup in st.session_state.matches if label == selected_label), None)
-        
-        if selected_tuple:
-            # Clear any previous benchmark results
-            if 'benchmark_df' in st.session_state:
-                del st.session_state.benchmark_df
-            if 'benchmark_df_raw' in st.session_state:
-                del st.session_state.benchmark_df_raw
-            
-            # Set the current institution
-            st.session_state.current_institution = selected_tuple
-        else:
-            st.error("Unable to find the selected institution.")
-
 # ---------------------------
 # Heatmap Styling Function
 # ---------------------------
@@ -479,16 +435,10 @@ st.markdown("""
 
 col1, col2 = st.columns([1, 3])
 with col1:
-    # Add a key to the text input to track its value
-    search_str = st.text_input("", 
-                                placeholder="Enter partial institution name", 
-                                key="institution_search_input", 
-                                # Add on_change to handle Enter key press
-                                on_change=find_institution)
-
+    search_str = st.text_input("", placeholder="Enter partial institution name", key="search_str")
 with col2:
     st.markdown('<div style="margin-top: 27px;"></div>', unsafe_allow_html=True)  # Add spacing
-    find_button = st.button("Find Your Institution", on_click=find_institution)
+    find_button = st.button("Find Your Institution")
 
 if find_button:
     search_term = search_str.strip().lower()
@@ -508,14 +458,13 @@ if find_button:
             st.success(f"Found {len(matches)} match(es). Please select one below.")
 
 if "matches" in st.session_state:
-    # Add key to the selectbox to track its value and enable enter key
-    selected_label = st.selectbox(
-        "Select Institution", 
-        [m[0] for m in st.session_state.matches], 
-        key="matches_dropdown",
-        # Use on_change to handle selection and clear previous benchmark results
-        on_change=handle_institution_selection
-    )
+    selected_label = st.selectbox("Select Institution", [m[0] for m in st.session_state.matches], key="matches_dropdown")
+    selected_tuple = next((tup for label, tup in st.session_state.matches if label == selected_label), None)
+    if st.button("Display Results"):
+        if not selected_tuple:
+            st.error("No institution selected.")
+        else:
+            st.session_state.current_institution = selected_tuple
 
 # Always display first results if an institution has been chosen.
 if "current_institution" in st.session_state:
